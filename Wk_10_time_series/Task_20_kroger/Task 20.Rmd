@@ -1,0 +1,106 @@
+---
+title: "Task 20"
+author: "Gideon Miles"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:  
+    keep_md: true
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_height: 6
+    fig_width: 12
+    fig_align: 'center'
+---
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r load_libraries, include=FALSE}
+# Use this R-Chunk to load all your libraries!
+#install.packages("tidyverse") # run this line once in console to get package
+library(tidyverse)
+library(dygraphs)
+library(tidyverse)
+library(tidyquant)
+library(quantmod)
+
+
+#[ ] Take notes on your reading of the new R package in the README.md or in a ‘.R’ script in the class task folder
+#[ ] Build the library(dygraphs) plot that shows the Kroger (KR) stock price performance over 5 years.
+#[ ] Imaging that you invested $10,000 in kroger about two years ago on April 5th. Make a graph with dygraph that shows performance dyRebased() to $10,000.
+#[ ] Annotate the graphic with a note of the reason at two or more time points, or intervals, where the price had significant shifts.
+#[ ] Create an .Rmd file with 1-2 paragraphs summarizing your graphics and the choices you made in the data presentation
+#[ ] Compile your .md and .html file into your git repository
+#[ ] Publish your assignment to Rstudio Connect at shiny.byui.edu
+
+
+###Calculate Change at each date of the time period in question.  Then Multiply that 10,000 by that rate of change 
+
+## Time series.  
+
+
+```
+
+```{r load_data}
+# Use this R-Chunk to import all your datasets!
+
+Kro <- tq_get("KR", get = "stock.prices", from = "2018-05-05", to = "2020-10-01")
+
+#shinyServer(function(input, output) {
+  
+ # predicted <- reactive({
+#    hw <- HoltWinters(ldeaths)
+#    predict(hw, n.ahead = input$months, 
+#            prediction.interval = TRUE,
+#            level = as.numeric(input$interval))
+#  })
+  
+#  output$dygraph <- renderDygraph({
+#    dygraph(predicted(), main = "Predicted Deaths/Month") %>%
+#      dySeries(c("lwr", "fit", "upr"), label = "Deaths") %>%
+#      dyOptions(drawGrid = input$showgrid)
+#  })
+  
+#})
+
+
+
+
+Kro<-Kro %>% mutate(Test=10000/adjusted[1]*adjusted)
+Kro2<-Kro %>% timetk::tk_xts(date=date)
+
+
+
+
+dygraph(data=Kro2$Test, main="Test Main")
+
+
+
+
+
+##april 5 2018
+## rate of change for 2 years.
+```
+
+## Background
+
+Shiny Data.  
+https://shiny.byui.edu/connect/#/apps/1180/access
+
+## Data Wrangling
+
+```{r tidy_data}
+# Use this R-Chunk to clean & wrangle your data!
+
+```
+
+## Data Visualization
+
+```{r plot_data}
+# Use this R-Chunk to plot & visualize your data!
+
+```
+
+## Conclusions

@@ -1,0 +1,225 @@
+---
+title: "Case_Study_07_Names_of_Christ"
+author: "David Palmer"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:  
+    keep_md: true
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_height: 6
+    fig_width: 12
+    fig_align: 'center'
+---
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r load_libraries, include=FALSE}
+# Use this R-Chunk to load all your libraries!
+#install.packages("tidyverse") # run this line once in console to get package
+library(tidyverse)
+#install.packages("rio")
+library(rio) #this allows me to use the read_lines
+library(stringi)
+library(stringr)
+#library(downloader)
+#download("https://github.com/wch/downloader/zipball/master", "downloader.zip", mode = "wb")
+```
+
+```{r load_data}
+# Use this R-Chunk to import all your datasets!
+#download("http://scriptures.nephi.org/downloads/lds-scriptures.csv.zip", dest="Case_Study_07/lds-scrips.zip", mode="wb") 
+#unzip ("lds-scrips.zip")
+#Now that the file is on my computer I don't have to keep rerunning the above 2 lines of code
+scrips <- read_csv("lds-scriptures.csv")
+bmnames <- read_rds(gzcon(url("https://byuistats.github.io/M335/data/BoM_SaviorNames.rds")))
+verse <- read_lines("https://byuistats.github.io/M335/data/2nephi2516.txt") #this line uses rio
+names <- import("https://byuistats.github.io/M335/data/BoM_SaviorNames.rds") #this line uses rio
+```
+
+## Background
+
+_Place Task Background Here_
+
+## Data Wrangling
+
+```{r tidy_data}
+# Use this R-Chunk to clean & wrangle your data!
+jnames <- bmnames%>% arrange(desc(nchar)) %>% select(name)
+names_of_god <- str_c(jnames$name, collapse = "|")
+#1st try, without tracking chapter or book
+pieces <- scrips %>% filter(volume_lds_url == "bm") %>% select(scripture_text) %>% str_split(names_of_god) %>% unlist()
+#pieces <- verse %>% str_split(names_of_god) %>% unlist() #Trying it with just one verse to see if it works
+#I think this code is flawed because I don't condense the BoM into a giant string first.
+#Doing it my way leaves a lot of slashes and periods which I think may be throwing off my 
+#word count.
+mytry <- tibble(strings = pieces) %>% mutate(wc = str_count(pieces, "[[:alpha:]]+")) 
+mytry %>% ggplot() + geom_line(mapping = aes(x=seq(1:4071), y=wc)) +
+  labs(y="Words Until Next Reference to Jesus", x="kth Reference to Christ", title = "Distance (in Words) Between References to Christ")
+#2nd try with attempt to track chapter or book
+count_words <- function(df_nested){
+  df_nested %>% 
+    str_split(names_of_god) %>%
+    unlist() %>% 
+    tibble() %>% 
+    mutate(wc = str_count(., "[[:alpha:]]+")) %>%
+    select(wc)
+}
+scripts_nested <- scrips %>% filter(volume_lds_url == "bm") %>% 
+  select(scripture_text, book_id, chapter_id) %>%
+  group_by(book_id, chapter_id) %>% nest()
+chap_wc <- scripts_nested %>% mutate(wc = map(data, count_words)) %>%
+  select(book_id, chapter_id, wc) %>% unnest() 
+#Now take the chapter_id with word count and merge it back to the original dataset (excluding verse info)
+unique_chap <- scrips %>% select(-c(verse_id, verse_number,verse_number, scripture_text, verse_title, verse_short_title)) %>% distinct(chapter_id, .keep_all=TRUE)
+scrips_wc <- left_join(chap_wc, unique_chap, by = "chapter_id") %>% 
+  mutate(chapter_name_long = paste(book_title, chapter_number))
+book_line = scrips_wc %>% group_by(book_id.x, book_title) %>% summarise(first_chapID_of_book = (first(chapter_id)-1189))
+```
+
+## Data Visualization
+
+```{r plot_data}
+# Use this R-Chunk to plot & visualize your data!
+ggplot(scrips_wc) + geom_step(mapping = aes(x=(chapter_id - 1189), y=wc)) + 
+  geom_vline(data=book_line, xintercept=book_line$first_chapID_of_book, color="red") + 
+  labs(y="# of Words Between References to Jesus", x="Sequential Chapter Number in the Book of Mormon", title = "Distance (in Words) Between References to Christ", subtitle = "Red lines denote start of a new book") +
+  scale_y_continuous(trans="reverse") 
+ggplot(scrips_wc) + geom_boxplot(aes(x=fct_reorder(book_title, book_id.x) , y=wc)) + scale_y_sqrt() + 
+  labs(y="# of Words Between References to Jesus (sqrt scale)", x="", title = "Distance (in Words) Between References to Christ")
+#This is the beginning of a for loops per J's code in class.
+#I didn't use this approach at all.
+#i=1
+#verse_breaks <- verse
+#names <- names %>% arrange(desc(nchar))
+#jnames <- names$name
+#for(i in seq_along(jnames)){
+#  verse_breaks <- verse_breaks %>% str_replace_all(jnames[i], str_c("__",i,"__"))
+ # print(jnames[i])
+#}
+#verse_breaks
+#observations <- verse_breaks %>% str_split("__[0-9]+__")
+#names_id <- verse_breaks %>% str_match_all("__[0-9]+__")
+#names(observations) <- names[[]]
+```
+
+## Conclusions
+During the war chapters of Alma you can see that there are not many references to Christ. 3rd Nephi and Moroni appear to be referencing him more frequently, as does Enos.
+
+# Doing it again a 2nd time, a year or so later
+```{r}
+savnames <- read_rds(gzcon(url("https://byuistats.github.io/M335/data/BoM_SaviorNames.rds")))
+bom <- scrips %>% filter(volume_title == "Book of Mormon")
+  longtext <- str_c(bom$scripture_text, collapse = " ")
+  #str_locate_all(longtext, str_c(savnames$name, collapse = "|"))[[1]] %>% head()
+  small_str_mat<-str_split(string = longtext, pattern = str_c(savnames$name, collapse = "|"),        simplify=TRUE)
+  small_str_tb <- t(small_str_mat) %>% tibble()
+  names(small_str_tb) <- "txt"  
+  wordcounts <- small_str_tb %>% group_by(txt) %>% mutate(wc = stri_stats_latex(txt)[[4]]) %>%       filter(wc>0)
+ggplot(data=wordcounts, aes(y=wc)) + geom_freqpoly(stat = "identity", aes(x=seq(1:4055))) +
+  labs(y="words between references to Christ")
+#now let's try to generalize it with a function
+get_word_count <- function(df){
+    longtext <- str_c(df$scripture_text, collapse = " ")
+  #str_locate_all(longtext, str_c(savnames$name, collapse = "|"))[[1]] %>% head()
+  small_str_mat<-str_split(string = longtext, pattern = str_c(savnames$name, collapse = "|"),        simplify=TRUE)
+  small_str_tb <- t(small_str_mat) %>% tibble()
+  names(small_str_tb) <- "txt"  
+  wordcounts <- small_str_tb %>% group_by(txt) %>% mutate(wc = stri_stats_latex(txt)[[4]]) %>%       filter(wc>0)
+  wordcounts$wc }
+#Want to try creating it in purrr as well as with a for loop maybe?
+n_bom <- bom %>% group_by(book_title) %>% nest()
+m_bom <- n_bom %>% mutate(wcvector = map(data, get_word_count))
+final_df <- m_bom %>% 
+  select(book_title, wcvector) %>% 
+  unnest(cols = c(wcvector)) %>%
+  ungroup() %>%
+  mutate(book_title = factor(book_title, levels=c("1 Nephi", "2 Nephi", "Jacob", "Enos", "Jarom", "Omni", "Words of Mormon", "Mosiah", "Alma", "Helaman", "3 Nephi", "4 Nephi", "Mormon", "Ether", "Moroni")))
+labvals <- final_df %>% group_by(book_title) %>% summarise(num = n()) %>%
+  mutate(runtot = cumsum(num),
+         startpos = lag(runtot, default = 0),
+         midx = (runtot + startpos)/2,
+         funtitle = book_title) %>% filter(num>100)
+#Find the average # of words
+overall_between <- final_df %>% ungroup() %>% summarise(overall = mean(wcvector)) 
+final_df %>% group_by(book_title) %>% summarise(meanChrist = mean(wcvector))%>%
+  ggplot(aes(x=book_title, y=meanChrist)) + geom_bar(stat="identity") + 
+  geom_hline(data = overall_between, yintercept = 64.6, color="red") +
+  annotate(geom="text", x=2,y=70, label = "Overall Mean", color="red")+
+  labs(y="mean words between references to Christ")  +
+  theme(  axis.text.x = element_text(angle  = 35, hjust=1),
+          axis.title.x = element_blank())
+  
+```
+
+```{r visualize}
+library(ggrepel)
+ggplot(data=final_df, aes(y=wcvector)) + 
+  geom_freqpoly(stat = "identity", aes(color = book_title, x=seq(1:nrow(final_df)))) +
+  geom_text_repel(data=labvals, aes(x=midx, y=-300, label = funtitle), size=4,
+                  nudge_y = -2) +
+  scale_y_reverse() + 
+  theme_bw() +
+  theme(legend.position = "none") 
+#I should probably deal with the spill over between books, but it's pretty minimal I think, so I'm not going to worry about it
+```
+
+# In class activity
+
+This next piece just works through an in class activity. Essentially, I want to know the mean number of "ands" per sentence per book in the BoM (as a proxy for run on sentences).
+
+Note: in class the stri_split_boundaries() wasn't working correctly because I had converted everything to lower case and it was expecting capital letters at the beginning of a sentence. I have fixed that below.
+
+I think it was slow in class just because of other things.
+
+Setting things up in the first chunk
+
+```{r eval=FALSE}
+scrips <- read_csv("./Case_Study_07/lds-scriptures.csv")
+bom <- scrips %>% filter(volume_title == "Book of Mormon")
+books<-levels(factor(bom$book_title))
+output <- vector("double", length(books))
+#Before doing my loop, I usually work through it one for a filtered version of the dataset
+#Then I try it again using i and setting i to a particular value
+#finally I put the for statement and the curly braces
+for (i in 1:length(books)){
+  #i=6
+  bookonly <- bom %>% filter(book_title == books[i])
+    narrative <- str_c(bookonly$scripture_text, collapse = " ") 
+    bits <- stri_split_boundaries(narrative, type = "sentence") %>% unlist()
+    output[i] <- bits %>% tibble() %>% mutate(andnum = str_count(., "and")) %>%  #Note: the . in str_count is the column name for the column with the text strings
+      summarise(meanand = mean(andnum))
+}
+done <- output %>% unlist() %>% cbind(books) %>% data.frame()
+colnames(done) <- c("avg ands per sentence", "book")
+done %>% 
+  mutate(avg_ands = parse_number(as.character(`avg ands per sentence`))) %>% 
+  ggplot(aes(x = fct_reorder(book, avg_ands), y = avg_ands)) +
+  geom_col() +
+  coord_flip()
+#Here is an example using the purr package.
+#To use the purr package to solve this problem you will need to create
+#a custom function. My custom function is called and1
+and1 <- function(df){
+  narrative <- str_c(df$scripture_text, collapse = " ")
+    bits <- stri_split_boundaries(narrative, type = "sentence") %>% unlist()
+    avgand <- bits %>% tibble(goti = bits) %>% select(goti) %>% 
+      mutate(andnum = str_count(goti,"and")) %>% 
+    #bits %>% tibble() %>% mutate(andnum = str_count(., "and")) #This is identical to the line of code above
+      summarise(meanand = mean(andnum))
+    avgand
+}
+#Take time to look at each of these objects so that you can understand what the code is doing
+n_bom <- bom %>% group_by(book_title) %>% nest()
+m_bom <- n_bom %>% mutate(ands_per_sentence = map(data, and1)) 
+#map() is how you tell it that you want to apply the function to each part of the nested data
+#data is just a keyword, it means the dataset, and1 is the name of the function you are applying in this case. You can also use functions defined in R such as mean, sum, etc.
+final_df <- m_bom %>% 
+  select(book_title, ands_per_sentence) %>% 
+  unnest(cols = c(ands_per_sentence)) %>%
+  ungroup() %>%
+  mutate(book_title = factor(book_title, levels=c("1 Nephi", "2 Nephi", "Jacob", "Enos", "Jarom", "Omni", "Words of Mormon", "Mosiah", "Alma", "Helaman", "3 Nephi", "4 Nephi", "Mormon", "Ether", "Moroni")))
+```

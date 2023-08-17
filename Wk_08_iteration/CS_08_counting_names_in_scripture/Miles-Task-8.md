@@ -1,0 +1,314 @@
+---
+title: "Case Study 8"
+author: "Gideon Miles"
+date: "November 10, 2020"
+output:
+  html_document:  
+    keep_md: true
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_height: 6
+    fig_width: 12
+    fig_align: 'center'
+---
+
+
+
+
+
+
+```r
+library(tidyverse)
+
+scrip1<-read_csv("lds-scriptures.csv")
+
+BOM<-scrip1 %>% filter(volume_title=="Book of Mormon")
+
+
+
+namesofChrist<-read_rds(gzcon(url("https://byuistats.github.io/M335/data/BoM_SaviorNames.rds")))
+
+#### START BEFORE THE NEST with a verse total.  Then use that total in the GG plot, have on be a Geom of the raw data of gaps between mentions of the savior by book and another be the display of the book average  CAn they cshare the axis? I think so shouldnt take long tommrow
+
+
+BOM1<-BOM %>% group_by(book_title) %>% nest()
+
+names_list <-namesofChrist$name %>% str_c(collapse="|")
+
+
+BOM_Text<-BOM$scripture_text %>% str_c(collapse=(""))
+
+thingy <- str_split(BOM_Text, names_list)
+
+thingy2<-unlist(thingy)
+
+thingy2<-data.frame(thingy2)
+
+thingy2<-thingy2 %>% mutate(num=str_count(thingy2, " "))
+
+mean(thingy2$num)
+```
+
+```
+## [1] 63.63842
+```
+
+```r
+thingy2<-thingy2 %>% rename(scripture_text=thingy2)
+
+united<-left_join(BOM, thingy2, by="scripture_text")
+
+
+
+
+##do a join!!!
+
+
+
+
+#myfunction <- function(arg1, arg2, ... ){
+#statements
+#return(object)
+#}
+
+
+
+stuff<-function(book)
+{
+
+book<-book$scripture_text %>% str_c(collapse=(""))
+
+thingy <- str_split(book, names_list)
+
+thingy2<-unlist(thingy)
+
+thingy2<-data.frame(thingy2)
+
+thingy2<-thingy2 %>% mutate(num=str_count(thingy2, " "))
+
+mean(thingy2$num)
+
+  
+}
+
+
+mnm<-map(BOM1$data,stuff) %>% unlist()
+
+TADAH<-data.frame(row.names=BOM1$book_title, mnm)
+
+
+
+
+### still need to have the RAW data to show on vizulization WITH a mean along with it.  
+
+
+  
+  #[ ] Use the list of Savior names and the Book of Mormon verses to figure out the average number of words between references to the Savior
+  
+  #compile into the same
+  #seperate them by the total number of Words
+```
+
+
+
+
+```r
+Stuff2<-function(book)
+{
+###keep the book title
+book2<-book$scripture_text %>% str_c(collapse=(""))
+
+thingy <- str_split(book2, names_list)
+
+thingy2<-unlist(thingy)
+
+thingy2<-data.frame(thingy2)
+
+thingy2<-thingy2 %>% mutate(num=str_count(thingy2, " "))
+
+thingy2<-data.frame(thingy2)
+thingy2$book_title<-book$book_long_title[1]
+
+#mean(thingy2$num)
+return(thingy2)
+  
+}
+
+Stuff2(BOM) %>% glimpse()
+```
+
+```
+## Rows: 4,071
+## Columns: 3
+## $ thingy2    <fct> "I, Nephi, having been born of goodly parents, therefore I…
+## $ num        <int> 38, 18, 132, 21, 93, 19, 8, 91, 71, 9, 1, 55, 23, 121, 100…
+## $ book_title <chr> "The First Book of Nephi", "The First Book of Nephi", "The…
+```
+
+```r
+mnm2<-map(BOM1$data,Stuff2)
+
+Hat<-data.frame()
+
+for(i in 1:15){
+ 
+   Hat<-rbind(mnm2[[i]],Hat)
+  
+}
+```
+
+
+
+
+```r
+orderlist = c("The First Book of Nephi", "The Second Book of Nephi", "The Book of Jacob",
+               "The Book of Enos", "The Book of Jarom", "The Book of Omni", "The Words of Mormon", "The Book of Mosiah", "The Book of Alma", "The Book of Helaman", "The Third Book of Nephi", "The Fourth Book of Nephi", "The Book of Mormon", "The Book of Ether", "The Book of Moroni") 
+
+
+Hat <- transform(Hat, book_title = factor(book_title, levels = orderlist)) 
+Hat<- Hat %>% na.omit()
+
+Hat2<-Hat %>% na.omit() %>% group_by(book_title) %>%  summarise(mean(num)) %>% rename(num="mean(num)")
+
+
+ggplot(Hat, aes(as.factor(x=book_title), y=num)) + geom_violin()+geom_point(Hat2, mapping=aes(x=book_title, y=mean(num),size=num), col="blue")+facet_wrap(~book_title)+
+  labs(colo="Mean",title="Length of time Between Mentions of one of the Names of the Savior Common Scale", y="Words Between Mention", x="Book")
+```
+
+![](Miles-Task-8_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+
+```r
+ggplot(Hat, aes(as.factor(x=book_title), y=num)) + geom_violin()+geom_point(Hat2, mapping=aes(x=book_title, y=mean(num),size=num), col="blue")+facet_wrap(~book_title, scales="free")+
+  labs(colo="Mean",title="Length of time Between Mentions of one of the Names of the Savior A Closer Look", y="Words Between Mention", x="Book")
+```
+
+![](Miles-Task-8_files/figure-html/unnamed-chunk-4-2.png)<!-- -->
+
+
+
+```r
+library(ggbeeswarm)
+
+Hat2<-Hat %>% group_by(book_title) %>%  summarise(mean(num)) %>% rename(num="mean(num)")
+
+
+Hat %>% group_by(book_title) %>% filter(num<400) %>% 
+ggplot(aes(as.factor(x=book_title), y=num)) + geom_quasirandom()+geom_point(Hat2, mapping=aes(x=book_title, y=num,size=num), col="blue")+facet_wrap(~book_title)+
+  labs(colo="Mean",title="Length of time Between Mentions of one of the Names of the Savior", subtitle="Outliers Removed", y="Words Between Mention", x="Book")
+```
+
+![](Miles-Task-8_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+
+## Conclusions
+
+We can see there on average is about a 64 word gap between each mention of a name of the savior in the Book of Mormon, every 60 words on average in this record the savior is mentioned.  Do we do as well in our discourses?  
+
+On a closer look single largest gap is a period of 4000 words, a significant portion but likely during the war chapters, when there the record was dealing with the details of war.  In these sections for example faith is mentioned but the records focus turns to the military actions of one who was righteous meaning in a right relationship with God.  Perhaps Moroni could have mentioned this more often here. This said by name the lord is not referenced for a period of 4000 words, even with this outlier the book's avearage is 
+
+Short of Removing Outliers, which I could do, it was diffuclt to get a perspective of each book on a common scale.
+
+However it is diffuclty to find a working scale as each f these falls in their own range.  
+
+The best shared maximum is about 400 to show everything is using a mean.  While there is a steady and consistent String of cases well over the mean, these are all outliers meaning the lower numbers are so large in number they ensure the mean is below 100 in every case. A closeer look at this shows the mean is somewhere between 0 and 100, even with signifncat outliers of large size.  
+
+On average the there is very little space between mentions of one of the Names of Christ.
+
+
+```r
+library(pander)
+Hat2%>% rename(Mean=num, Book=book_title) %>% pander()
+```
+
+
+----------------------------------
+           Book             Mean  
+-------------------------- -------
+ The First Book of Nephi    52.39 
+
+ The Second Book of Nephi   47.6  
+
+    The Book of Jacob       57.11 
+
+     The Book of Enos       46.96 
+
+    The Book of Jarom       79.56 
+
+     The Book of Omni       62.09 
+
+    The Book of Mosiah      65.56 
+
+     The Book of Alma       81.02 
+
+   The Book of Helaman      94.3  
+
+ The Third Book of Nephi    60.75 
+
+ The Fourth Book of Nephi   43.11 
+
+    The Book of Mormon      47.14 
+
+    The Book of Ether       70.48 
+
+    The Book of Moroni      31.97 
+----------------------------------
+
+To see this alittle more clearly consider the Box Plot
+
+
+```r
+Hat %>% group_by(book_title) %>% filter(num<80) %>% 
+ggplot(aes(as.factor(x=book_title), y=num))+geom_boxplot(mapping=aes(y=num))+facet_wrap(~book_title)+
+  labs(colo="Mean",title="Boxplot of time Between Mentions of one of the Names of the Savior", subtitle="Outliers Removed", y="Words Between Mention", x="Book")
+```
+
+![](Miles-Task-8_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+
+This Box plots shows that the data even with massive outliers is still clustered closely around 25 words between mentions of the name of the savior.  Shows the median around 20 for most data sets individually.
+
+
+
+
+
+
+
+
+
+
+# Take That Mark Twain! Its not a pamphlet
+
+
+```r
+namesofChrist<-read_rds(gzcon(url("https://byuistats.github.io/M335/data/BoM_SaviorNames.rds")))
+
+names_list <-c("and it came to past",  "And it came to past")
+
+
+BOMText<-BOM$scripture_text %>% str_c(collapse=(""))
+
+thingy<-str_split(BOMText, names_list)
+
+thingy<-str_remove(thingy, names_list)
+
+thingy2<-unlist(thingy)
+
+thingy2<-data.frame(thingy2)
+
+thingy2<-thingy2 %>% mutate(num=str_count(thingy2, " "))
+
+sum(thingy2$num)
+```
+
+```
+## [1] 520638
+```
+
+```r
+sum(str_count(thingy))
+```
+
+```
+## [1] 2813438
+```
+
+

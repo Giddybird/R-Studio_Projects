@@ -1,0 +1,58 @@
+---
+title: "Case Study 10"
+author: "Gideon Miles"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:  
+    keep_md: true
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_height: 6
+    fig_width: 12
+    fig_align: 'center'
+---
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r load_libraries, include=FALSE}
+# Use this R-Chunk to load all your libraries!
+#install.packages("tidyverse") # run this line once in console to get package
+library(tidyverse)
+library(buildings)
+library(USAboundaries)
+```
+
+```{r load_data}
+# Use this R-Chunk to import all your datasets!
+
+permits<-permits
+us_states
+
+```
+
+## Background
+
+You have been asked to support a story for the local paper (that has a web presence) that looks back on the housing collapse and the early effects of residential construction. You have data on residential building permits from 1980 through 2010 for each county in the United States. Your colleague that is writing the article would like a few maps and graphics that highlight the single family building permit patterns across your state as well as the patterns in the US.
+
+Remember the big story is the collapse of new building permits at the initial stages of the 2007-2010 mortgage crisis (Links to an external site.). Make sure your graphics highlight the collapse in a clear and honest manner.
+
+## Data Wrangling
+
+```{r tidy_data}
+# Use this R-Chunk to clean & wrangle your data!
+
+
+
+```
+
+## Data Visualization
+
+```{r plot_data}
+# Use this R-Chunk to plot & visualize your data!
+
+```
+
+## Conclusions

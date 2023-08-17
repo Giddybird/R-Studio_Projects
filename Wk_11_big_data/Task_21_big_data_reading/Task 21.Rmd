@@ -1,0 +1,105 @@
+---
+title: "Task 21"
+author: "Gideon Miles"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:  
+    keep_md: true
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_height: 6
+    fig_width: 12
+    fig_align: 'center'
+---
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r load_libraries, include=FALSE}
+# Use this R-Chunk to load all your libraries!
+#install.packages("tidyverse") # run this line once in console to get package
+library(tidyverse)
+library(USAboundaries)
+library(sf)
+library(maps)
+library(ggrepel)
+
+devtools::install_github("ropensci/USAboundaries")
+devtools::install_github("ropensci/USAboundariesData")
+
+
+USA<-us_states(map_date = NULL, resolution = c("low", "high"), states = NULL)
+
+USA1<-USA %>% filter(name!="Alaska", name!="Hawaii")
+
+
+states <- sf::st_as_sf(map("state", plot = F, fill = T))
+idaho <- us_states(states = "Idaho")
+Idahoco<-us_counties(state="Idaho")
+
+
+
+USA2<-us_cities()
+
+
+cities <- USA2 %>% filter(state_name!="Alaska", state_name!="Hawaii") %>% group_by(state_name) %>%  top_n(3, population) %>% mutate(top3=row_number(desc(population)))
+
+cities <- USA2 %>% filter(state_name!="Alaska", state_name!="Hawaii") %>% group_by(state_name) %>% 
+mutate(my_ranks = order(order(population, order_dates, decreasing=TRUE)))
+
+
+#cities1 <- cities %>% group_by(state_name) %>% slice_max(order_by = population, n = 3) %>%
+#  filter(!state_name %in% c("Hawaii", "Alaska", "Puerto Rico"))
+
+
+?top_n()
+
+#row_number(desc(population))
+
+ggplot()+geom_sf(data=states)+geom_sf(data=Idahoco, fill=NA)+geom_sf(data=cities, aes( color=top3, size=population/100000000))+
+  labs(size="population", color="State City Ranking") 
+  #geom_label_repel(data=cities, aes(label=county, geometry=geometry), size=2, segment.colour="firebrick", stat="sf_coordinates")
+
+
+
+
+
+
+```
+
+```{r load_data}
+states <- sf::st_as_sf(map("state", plot = FALSE, fill = TRUE))
+
+# Use this R-Chunk to import all your datasets!
+#[ ] Take notes on your reading of the new R package in the README.md or in a ‘.R’ script in the class task folder
+#[ ] Create a .png image that closely matches my example
+#[ ] You should notice that the color of the points does not map to population size, rather it indicates the city's population rank (1st, 2nd or 3rd) within the state.
+#[ ] Note that fill = NA in geom_sf() will not fill the polygons with a grey color, rather it makes the fill transparent.
+#[ ] Note that library(USAboundaries) has three useful functions - us_cities(), us_states(), and us_counties()
+#To add the labels to the image consider using  library(ggrepel),
+#[ ] Save your script and .png files to GitHub
+```
+
+## Background
+
+_Place Task Background Here_
+
+## Data Wrangling
+
+```{r tidy_data}
+# Use this R-Chunk to clean & wrangle your data!
+
+```
+
+## Data Visualization
+
+```{r plot_data}
+# Use this R-Chunk to plot & visualize your data!
+ggplot() +
+  geom_sf(data = states) + 
+  geom_sf(data = id)
+```
+
+## Conclusions

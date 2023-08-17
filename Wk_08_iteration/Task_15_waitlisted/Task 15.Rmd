@@ -1,0 +1,120 @@
+---
+title: "Task 15"
+author: "YOUR NAME"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:  
+    keep_md: true
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_height: 6
+    fig_width: 12
+    fig_align: 'center'
+---
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r load_libraries, include=FALSE}
+# Use this R-Chunk to load all your libraries!
+#install.packages("tidyverse") # run this line once in console to get package
+library(tidyverse)
+library(downloader)
+```
+
+```{r load_data}
+# Use this R-Chunk to import all your datasets!
+#Task 15
+waitlist <- read_csv("https://byuistats.github.io/M335/data/waitlist_DP_108.csv")
+
+waitlist2 <- waitlist %>% 
+  rename(
+    semester_term_code = `Semester Term Code`,
+    person_id = `Person ID`,
+    course_sec = `Course Sec`,
+    registration_date = `Registration Date`,
+    waitlist_reason = `Waitlist Reason`
+  ) %>% 
+  mutate(date = lubridate::mdy_hm(registration_date))
+
+
+sec18 <- waitlist2 %>% filter(course_sec == "FDMAT108-18")
+sec14 <- waitlist2 %>% filter(course_sec == "FDMAT108-14")
+sec15 <- waitlist2 %>% filter(course_sec == "FDMAT108-15")
+sec16 <- waitlist2 %>% filter(course_sec == "FDMAT108-16")
+
+#What % of registered people came from the waitlist
+
+registered_from_waitlist <- function(transaction_data){
+
+
+    dat1 <- transaction_data %>% arrange(person_id, desc(date), desc(Status)) %>% 
+      distinct(person_id, .keep_all = TRUE) %>% #We sorted the dataset so that we could take the top row as the most recent transaction
+      summarise(registered = sum(Status == "Registered"), #count up the people whose most recent transaction was to be registered
+                reg_from_wl = sum(waitlist_reason == "Waitlist Registered", na.rm = TRUE)) #count of the people who came from the waitlist
+    
+    dat1$reg_from_wl / dat1$registered
+
+}
+
+
+registered_from_waitlist(transaction_data = sec18)      
+
+registered_from_waitlist(transaction_data = sec14) 
+
+registered_from_waitlist(transaction_data = sec15) 
+
+### what % of the waitlist gets registered
+
+wlist <- sec18 %>% 
+  filter(Status == "Wait List") %>% 
+  distinct(person_id) #This stepm finds all the people who were ever on the waitlist
+  
+
+
+
+
+reg_from_wl <- sec18 %>% 
+  filter(person_id %in% wlist$person_id) %>%  #only look at people who were ever on the waitlist
+  arrange(person_id, desc(date), desc(Status)) %>% #sort the records so that we can get the most recent transaction
+  distinct(person_id, .keep_all = TRUE) %>% #This will take the first row for each person_id (i.e. the most recent transaction)
+  filter(Status == "Registered") %>% nrow() #only keep the people who ended up being registered and count the rows
+
+reg_from_wl / wlist %>% nrow()
+
+##Now that you've got this far, see if you can put these calculations into a function like we did above for 
+## the % of registered people that came from the waitlist.
+```
+
+## Data Wrangling
+
+```{r tidy_data}
+# Use this R-Chunk to clean & wrangle your data!
+
+fun2<-function(){
+  
+reg_from_wl <- sec18 %>% 
+  filter(person_id %in% wlist$person_id) %>%  #only look at people who were ever on the waitlist
+  arrange(person_id, desc(date), desc(Status)) %>% #sort the records so that we can get the most recent transaction
+  distinct(person_id, .keep_all = TRUE) %>% #This will take the first row for each person_id (i.e. the most recent transaction)
+  filter(Status == "Registered") %>% nrow() #only keep the people who ended up being registered and count the rows
+
+reg_from_wl / wlist %>% nrow()
+
+}
+
+
+```
+
+## Data Visualization
+
+```{r plot_data}
+# Use this R-Chunk to plot & visualize your data!
+
+
+
+```
+
+## Conclusions

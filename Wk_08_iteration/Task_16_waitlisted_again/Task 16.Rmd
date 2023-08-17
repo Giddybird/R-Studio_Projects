@@ -1,0 +1,111 @@
+---
+title: "Task 16"
+author: "Gideon Miles"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:  
+    keep_md: true
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_height: 6
+    fig_width: 12
+    fig_align: 'center'
+---
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r load_libraries, include=FALSE}
+# Use this R-Chunk to load all your libraries!
+#install.packages("tidyverse") # run this line once in console to get package
+library(tidyverse)
+
+```
+
+```{r load_data}
+# Use this R-Chunk to import all your datasets!
+waitlist <- read_csv("https://byuistats.github.io/M335/data/waitlist_DP_108.csv")
+
+waitlist2 <- waitlist %>% 
+  rename(
+    semester_term_code = `Semester Term Code`,
+    person_id = `Person ID`,
+    course_sec = `Course Sec`,
+    registration_date = `Registration Date`,
+    waitlist_reason = `Waitlist Reason`
+  ) %>% 
+  mutate(date = lubridate::mdy_hm(registration_date))
+
+
+
+```
+
+
+```{r}
+##The Function
+
+perc_waitlist_registered <- function(section_num){
+  wlist<-section_num %>% 
+    filter(Status=="Wait List") %>% 
+    distinct(person_id)
+  
+  reg_from_wl<-section_num %>% 
+    filter(person_id %in% wlist$person_id) %>% 
+    arrange(person_id, desc(date), desc(Status)) %>% 
+    distinct(person_id, .keep_all=TRUE) %>% 
+    filter(Status=="Registered") %>% nrow()
+  
+  reg_from_wl / wlist %>% nrow()
+  
+  
+}
+```
+
+
+
+```{r}
+
+
+# Step 1: Nest teh Dataset
+nested_wl<-waitlist2 %>% group_by(course_sec, semester_term_code) %>% nest()
+
+#Step 2: Apply the function
+plot_data<-nested_wl %>% 
+  transmute(perc_of_wl_reg=map_dbl(data, perc_waitlist_registered),
+         perc_of_reg_from_wl= map_dbl(data, registered_from_waitlist))
+
+plot_data %>% ggplot()+geom_label(aes(x=perc_of_wl_reg,
+                                      y=perc_of_reg_from_wl,
+                                      label=semester_term_code))
+
+waitlist2 %>% group_by(course_sec, semester_term_code) %>% summarise(volume=n()) %>% 
+  full_join(plot_data) %>% 
+  ggplot()+
+  geom_point(aes(x=perc_of_wl_reg, y= perc_of_reg_from_wl, size=volume))
+
+
+ggplot(waitlist2, aes(x=course_sec))+geom_bar()
+
+```
+
+## Background
+
+_Place Task Background Here_
+
+## Data Wrangling
+
+```{r tidy_data}
+# Use this R-Chunk to clean & wrangle your data!
+
+```
+
+## Data Visualization
+
+```{r plot_data}
+# Use this R-Chunk to plot & visualize your data!
+
+```
+
+## Conclusions

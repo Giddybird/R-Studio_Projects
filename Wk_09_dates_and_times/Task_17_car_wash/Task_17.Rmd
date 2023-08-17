@@ -1,0 +1,109 @@
+---
+title: "Task 17"
+author: "Gideon Miles"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:  
+    keep_md: true
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_height: 6
+    fig_width: 12
+    fig_align: 'center'
+---
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r load_libraries, include=FALSE}
+# Use this R-Chunk to load all your libraries!
+#install.packages("tidyverse") # run this line once in console to get package
+library(tidyverse)
+library(downloader)
+library(lubridate)
+
+#A car wash business wants to see if the temperature hurts their bottom line. They have point of sale data for the months of April, May, June, and July. You will need to aggregate the data into hourly sales totals and merge the sales data together with the temperature data to provide insight into the relationship between temperature and car wash sales.
+
+?ceiling_date()
+
+```
+
+```{r load_data}
+# Use this R-Chunk to import all your datasets!
+
+carw<-read_csv("carwash.csv")
+
+
+```
+
+## Background
+
+Does the Weather Impact the bottom line of a car wash?  Would rain or heat change it? What about temperature?
+
+## Data Wrangling
+
+```{r tidy_data}
+# Use this R-Chunk to clean & wrangle your data!
+
+#Amount=money made
+#time is either when it starts or stops, stops? 
+
+```
+
+## Data Visualization
+
+```{r plot_data}
+# Use this R-Chunk to plot & visualize your data!
+
+ggplot()+geom_bar(data=carw, aes(x=))
+
+library(ggrepel)
+ggplot(data=carw, aes(y=amount)) + 
+  geom_freqpoly(stat = "identity", aes( x=seq(1:nrow(carw)))) + 
+  theme_bw() +
+  theme(legend.position = "none") 
+
+carw$time<-ymd_hms(carw$time)
+
+carw$hour<-carw$time %>% ceiling_date(unit="hour")
+
+hour<-hour(carw$hour)
+month(carw$hour)
+
+library(riem)
+
+temp<-riem_measures(station = "RXE", date_start = date(min(carw$time)), date_end = date(max(carw$time)))
+
+temp<-temp %>% mutate(time=valid)
+temp2<-select(temp, time, tmpf) %>% na.omit()
+temp2$time<-temp2$time %>% ceiling_date(unit="hour")
+
+##by month
+##by hour?
+## by hour and month?
+
+
+joined<-left_join(carw,temp2, by=c("hour"="time"))
+joined<-joined %>% mutate(hour=hour(hour))
+joined<-joined %>% mutate(mouth=month(time))
+##make month number= to month name case when mutate
+```
+
+Plotting the data we see almost an EKG or a Sesimograph right?  What this is showing is the amount of money being made the Car Wash in each transaction.  Many are negative, why? Because there are refunds.
+This however is merely a prelimary exploration.
+
+
+
+```{r}
+
+joined %>% group_by(hour, mouth) %>% summarise(mean=mean(amount, na.rm=TRUE), meantemp=mean(tmpf, na.rm=TRUE)) %>%  
+ggplot(aes(x=meantemp ,y=mean, color=as.factor(mouth))) + geom_point()+ 
+  theme_bw()+
+  labs(color="mouth", x="Temperature", y="Amount", title = "Does Temperature Affect my Bottom Line", subtitle="Avereage temperature compared to average sales")+
+  facet_grid(~hour)
+```
+
+
+## Conclusions
