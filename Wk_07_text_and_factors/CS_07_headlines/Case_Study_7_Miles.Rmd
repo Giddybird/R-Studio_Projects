@@ -1,0 +1,104 @@
+---
+title: "CASE STUDY 7"
+author: "Gideon"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:  
+    keep_md: true
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_height: 6
+    fig_width: 12
+    fig_align: 'center'
+---
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r load_libraries, include=FALSE}
+# Use this R-Chunk to load all your libraries!
+#install.packages("tidyverse") # run this line once in console to get package
+library(tidyverse)
+library(downloader)
+library(maps)
+```
+
+```{r load_data}
+View(us.cities)
+?us.cities
+
+us<-us.cities
+us$name = substr(us$name,1,nchar(us$name)-2)
+n1<-str_c(us$name, sep="|")
+
+?str_c()
+
+##STR SUBSET
+
+ABC<-ABC %>% mutate(City="Default")
+D1<-mutate(ABC, City= str_sub(ABC$headline, n1))
+
+  gsub("(?<=.)(?=.)", " | ", us$name, perl = TRUE)
+
+
+
+
+# Use this R-Chunk to import all your datasets!
+
+##How often does it show up in the headlines
+#We believe if there is anything "of good report or praiseworthy we seek after these things." You are working for management consulting agency A.T. Kearney which produces the Global Cities report (Links to an external site.). They have put you on a team in charge of developing a new report: the USA Cities report - which identifies the most influential cities in the United States. Your manager would like to explore using the frequency with which a city appears in news headlines as a contributing factor to their city rankings. You find data from two major news outlets: one in California (KCRA) and one in New York (ABC7NY). The data spans July 18, 2017 - Jan 16, 2018. You will use the headlines to find which cities are mentioned most in the news. After creating reproducible R code (i.e. an R markdown file) on this test dataset, your goal is to apply the code to a larger, more up-to-date dataset.
+
+#Specifically, you are interested in identifying the 15 cities with the highest headline count overall. You are curious if the city has sustained headlines or if there was a singular event driving the headlines over time. Lastly, they are especially interested in fast growing cities, such as Houston, TX and Charlotte, NC. 
+
+#You may want to consider how to deal with the burroughs of New York City. Think about the data you are getting and whether it makes sense.
+
+## soo first a test.  of 2... create a dictonary of US cities? for comparision but which function will allow me to check them all for words and then count them.  Could make a vector for the count of each city... needs to return a count and a city name 
+#would the count function work?
+#make two can I save a string into a string a collection of strings? well i could make multiplue observations for each time a city appears in a title and then use something other data to group articles like the article titles. I mean how likely are two citiyes to show up twice? How often will two cities really be mentioned at the same time in the same article?  I will do check that when i get to it?
+
+
+
+## ten a generic that only shows the top 15 cities generic in that it just shows the head 15 head fitted to 15....  by a vector or metric of sie.
+##
+
+bob<-tempfile()
+  download("https://storybench.org/reinventingtv/abc7ny.csv", bob, mode="wb")
+ABC<-read_csv(bob)
+
+bob2<-tempfile()
+  download("https://storybench.org/reinventingtv/kcra.csv", bob2, mode="wb")
+KCR<-read_csv(bob2)
+
+
+### combine new york boroughs, and JFK as New York  NYPD also counts as New York.
+#Harlem also as New York, Street Means New York.\
+#do a STR_count for everything thats an identifying feature, and then do a case when mutate only for the New york streets Could do every street name, but I think in this case no one cares about a street name that isnt NY and then do this for both coloumns. (teaser and Headline)
+#Tri-State Area
+#Do I do a if statement?? or a case when rather? thats a while case when statement...
+
+##Option.  extract anything that starts with "IN" and the next 2 words after, no how would it know when the city name stopped. true.
+
+### what if I did anything after "at" or "at the" or "in"
+```
+
+## Background
+
+_Place Task Background Here_
+
+## Data Wrangling
+
+```{r tidy_data}
+# Use this R-Chunk to clean & wrangle your data!
+
+```
+
+## Data Visualization
+
+```{r plot_data}
+# Use this R-Chunk to plot & visualize your data!
+
+```
+
+## Conclusions

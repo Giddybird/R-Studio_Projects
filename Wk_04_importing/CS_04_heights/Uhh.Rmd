@@ -1,0 +1,86 @@
+---
+title: "Task 7"
+author: "Gideon Miles"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:  
+    keep_md: true
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_height: 6
+    fig_width: 12
+    fig_align: 'center'
+---
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r load_libraries, include=FALSE}
+# Use this R-Chunk to load all your libraries!
+#install.packages("tidyverse") # run this line once in console to get package
+library(tidyverse)
+
+```
+
+```{r load_data}
+# Use this R-Chunk to import all your datasets!
+library(readr)
+
+#[ ] Take notes on your reading of the specified ‘R for Data Science’ chapter in the README.md or in a ‘.R’ script in the class task folder
+#Use the appropriate functions in library(readr) to read in the .rdsfile found on GitHub (Links to an external site.)
+#[ ] Use read_rds(url("WEBLOCATION.rds")) to download and read the .rds file type
+#[ ] The contestant_period column is not “tidy” we want to create a month_end and year_end column from the information it contains
+#######[ ] Save your “tidy” data as an .rds object
+#[ ] Create a plot that shows the six-month returns by the year in which the returns are collected
+#[ ] Include your plot in an .Rmd file with a short paragraph describing your plots. Make sure to display the tidyr code in your file
+#[ ] Use code to create a table of the DJIA returns that matches the table shown below (“pivot_wider” the data)
+#[ ] Push your .Rmd, .md, and .html to your GitHub repo
+
+
+d1<-read_rds(url("https://github.com/byuistats/data/blob/master/Dart_Expert_Dow_6month_anova/Dart_Expert_Dow_6month_anova.RDS?raw=true"))
+
+d1 %>% pivot_wider(names_from())
+
+d2<-d1 %>% separate(contest_period, into=c("Month_End","Year_End"), sep="-")
+
+d3<-d2 %>% separate(Year_End, into=c("Month", "Year"), sep="1")
+
+d3$Year<-paste0("1", d3$Year)
+
+
+parse_number()
+
+parse_number() 
+%>% select(-c(whatever_your_col_you_don't_want))
+
+
+mutate()
+
+
+
+
+?separate()
+
+```
+
+## Background
+
+_Place Task Background Here_
+
+## Data Wrangling
+
+```{r tidy_data}
+# Use this R-Chunk to clean & wrangle your data!
+
+```
+
+## Data Visualization
+
+```{r plot_data}
+# Use this R-Chunk to plot & visualize your data!
+
+```
+
+## Conclusions

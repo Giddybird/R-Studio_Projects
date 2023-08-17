@@ -1,0 +1,1128 @@
+---
+title: "Homewise Shopper CafePress Five Year Look Back"
+author: "Gideon Miles"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:  
+    keep_md: true
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_height: 6
+    fig_width: 12
+    fig_align: 'center'
+---
+
+```{r setup, include=FALSE, warning=FALSE} 
+library(mosaic)
+library(car)
+library(DT)
+library(pander)
+library(readr)
+library(tidyverse)
+library(ggplot2)
+library(ggbeeswarm)
+CPData <- read_csv("Cafepress_5_Year_Data.csv")
+
+```
+
+## Domian Knowledge
+Online Shopping is growing every year.  The on demand model allows for companies (especially clothing companies) to offer made to order custom products shipped directly a customers home, further when the designs are those picked from selections of thousands of niche designes made by everday designers, that not only have a more "to earth" perspective but also can persue very niche markets of their own accord, all without having to keep inventories, design what goes on the shirt or even market them.  To the user its a "get exactly what you want shipped directly to your door" to the designer, its a "no contract" at will with little limitation beyond copyright and liscening restrictions, as to what can be made, this means the company has a near limitless marketplace, and the designer has near limitless creative lisence.  And the user has near limitless options, more specific for example occupational gifts for specific occupations. For the user again they get convience, and a broader selection of products, things like occupation specific gifts, the kind of thing you'd never see in a store.  
+
+Many Companies called "PODs" (Print On Demands) are seeking to fill this market with print on demand products, using the vastness of an online market place, and search engines to deliver specific products to the people interested.  This means not keeping large amount of stock on hand.  And being able to have in theory a design for every taste.  They do this through many product types.  Firstly just T-shirts, but since expanding into other products, mugs, Pillows, Water Bottles.  Homewise Shopper LLC is on such seller on Cafepress. 
+
+## The Question:
+
+It is the goal of this analsis to identify which areas are of the greatest interest, which have the greatest growth rates, which have the greatest profit margins, which move the most product and which bring in the most sales.
+At the request of the Bussiness who's data this is.  All product types will be refered to not by their name but by a number.  
+It makes possible still to track trends, it was requested by the bussiness that their data be kept propietary.  The questions of what is happening is explored here, and as the bussiness has been moving away from   
+
+## Understanding the Data
+
+There are just over 200,000 sales on CafePress in the last 5 years for Homewiseshopper. Within those sales there has been variation some have sold many products at once others have sold only single ones, some are veritabel landfalls with T-shirts and others are merely cheap liscence plate frames.  To that end we are going to look at which Products have sold the most often in the last 5 years, and which have made the most money.   In a case when there is roughly 200,000 sales there's alot to go over and its easy to miss trends if one is just going by what emails come for them during a day.
+
+```{r, include=FALSE}
+##unique(CPData2$Product)
+```
+
+After a breif summary there are 46,525 unique product sales to this point August 1, 2020.  
+
+So in short you have 46,525 unique Product listings, the data set contains 200,000 sales meaning yes there are plenty of duplicate sales or product/design listings selling multipule times.
+
+A Product listing in Cafepresses Eyes is any unique combination of Product Type (Tshirt, Dog Bowl, Bumper Etc) and Design (what goes on that product).  There are only 250+ designable products currently offered at Cafepress.  Meaning the 46,525 unique product types that sold in the last five years is more than the base 250 offered, clearly.  
+
+
+```{r,warning=FALSE, include=FALSE}
+## Filtering
+CPData2<-CPData
+CPData2$Total <- as.numeric(gsub("$","",CPData$Total, fixed = TRUE))
+#CPData2<-filter(CPData2, Total, !is.na(Total))
+CPData4<-CPData2
+CPData2<-filter(CPData2, !grepl("canceled",Status)) 
+```
+
+
+```{r, include=FALSE}
+# do I do a mens and womens first, and then take tshirts from that?
+#split by kids, split by baby, and split by kids
+#so break it down by "kid, Baby, Maternity and remove those from the source data before doing general T shirts. okay that should work.
+
+
+#Maternity tees (keep these separate)
+#Baby (combine bodysuits and baby t-shirts and pjs)
+#Baby Hats
+#Kids (combine long, short sleeve, football etc)  (does that mean T-shirt different from adult tshirts?)
+#CPData2= Source Data (duplicated from CPData so that there is still an original source untouched)
+
+
+CPTMaternity<-filter(CPData2, grepl("Maternity",Product)) %>% mutate(Broad_Product_Type="Product 1")
+## Now to remove it from the original Working Data Set meaning it wont be double counted for Baby because both Baby and Maternity are shared in the same
+CPData2<-filter(CPData2, !grepl("Maternity",Product))
+
+# Baby Hats
+  CPBabyHat<-filter(CPData2, grepl("Baby Hat",Product)) %>% mutate(Broad_Product_Type="Product 2")
+CPData2<-filter(CPData2, !grepl("Baby Hat",Product))
+
+
+# Baby
+  CPBaby<-filter(CPData2, grepl("baby",Product)) %>% mutate(Broad_Product_Type="Product 3")
+  CPInfant<-filter(CPData2, grepl("Infant",Product)) %>% mutate(Broad_Product_Type="Product 3")
+
+  CPBaby <- do.call("rbind",list(CPBaby,CPInfant))
+
+  #removing babyand infan
+CPData2<-filter(CPData2, !grepl("Baby",Product))
+CPData2<-filter(CPData2, !grepl("Infant",Product))
+ # Okay... double counting, baby and Baby T-shrits.... baby is presenting some issues
+  
+#  Mugs
+  CPMug<-filter(CPData2, grepl("Mug",Product)) %>% mutate(Broad_Product_Type="Product 4")
+  CPData2<-filter(CPData2, !grepl("Mug",Product))
+  
+  
+  #Kids
+  CPKids<-filter(CPData2, grepl("Kids",Product)) %>% mutate(Broad_Product_Type="Product 5")
+  CPData2<-filter(CPData2, !grepl("Kids",Product))
+ 
+  
+  # way to have multipul, Kids & !=baby then its kids.
+  
+  #Hoodies
+    CPHoodie<-filter(CPData2, grepl("Hoodie",Product)) %>% mutate(Broad_Product_Type="Product 6")
+    CPData2<-filter(CPData2, !grepl("Hoodie",Product))
+  #Aprons
+    CPApron<-filter(CPData2, grepl("Apron",Product)) %>% mutate(Broad_Product_Type="Product 7")
+    CPData2<-filter(CPData2, !grepl("Apron",Product))
+    #Tote Bags (combine anything that says tote bag)
+     CPTote<-filter(CPData2, grepl("Tote",Product)) %>% mutate(Broad_Product_Type="Product 8")
+     CPData2<-filter(CPData2, !grepl("Tote",Product))
+     
+    #License Plate Frames  (It doesnt like lisence plate frames for some reason)
+    CPLisence<-filter(CPData2, grepl("Plate Frame",Product)) %>% mutate(Broad_Product_Type="Product 9") 
+  
+    CPData2<-filter(CPData2, !grepl("Plate Frame",Product))
+    
+     #Flip Flops
+     CPFlip<-filter(CPData2, grepl("Flip Flop",Product)) %>% mutate(Broad_Product_Type="Product 10")
+     CPData2<-filter(CPData2, !grepl("Flip Flop",Product))
+     
+     #Baseball Hats
+      CPBaseCap<-filter(CPData2, grepl("Baseball Cap",Product)) %>% mutate(Broad_Product_Type="Product 11") 
+      CPData2<-filter(CPData2, !grepl("Baseball Cap",Product))
+      
+      #Shower Curtains
+     CPShower<-filter(CPData2, grepl("Shower Curtain",Product)) %>% mutate(Broad_Product_Type="Product 12")
+     CPData2<-filter(CPData2, !grepl("Shower Curtain",Product))
+     
+     #Ornaments (combine all styles of ornaments)
+     CPOrnament<-filter(CPData2, grepl("Ornament",Product)) %>% mutate(Broad_Product_Type="Product 13")
+     CPData2<-filter(CPData2, !grepl("Ornament",Product))
+     
+     #Jewelry Boxes (might be called tile boxes?)
+     #(DOES NOT LIKE THIS ONE EITHER)
+     CPKeepsake<-filter(CPData2, grepl("Keepsake",Product)) %>% mutate(Broad_Product_Type="Product 14")
+       CPData2<-filter(CPData2, !grepl("Keepsake",Product))
+     #Coasters
+     #CPCoaster<-filter(CPData2, grepl("Tile Coaster",Product)) %>% mutate(Broad_Product_Type="Coaster")
+     
+     #Water Bottles
+     CPWater<-filter(CPData2, grepl("Water Bottle",Product)) %>% mutate(Broad_Product_Type="Product 15")
+     CPData2<-filter(CPData2, !grepl("Waterbottle",Product))
+     
+     #Pillows (combine all pillows)
+     
+     CPPillow<-filter(CPData2, grepl("Pillow",Product)) %>% mutate(Broad_Product_Type="Product 16")
+     CPData2<-filter(CPData2, !grepl("Pillow",Product))
+     
+     CPTshirt<-filter(CPData2, grepl("T-Shirt",Product)) %>% mutate(Broad_Product_Type="Product 17")
+     CPData2<-filter(CPData2, !grepl("T-Shirt",Product))
+
+     
+     ##I can just add in more filtering statements for other product types we want to look at.
+     
+     ##suggestion, filter it into a new data frame, and then remove it from the previous one with a second filter statement at the same time that way previously used ones are no longer have a chance of being double counted. yeah I THINK that could work let see.)
+```
+
+
+```{r, include=FALSE}
+#merging the seperate tables (im sure there's a cleaner way)
+
+
+CP1 <- do.call("rbind",list(CPTshirt,CPApron,CPFlip,CPHoodie,CPKids,CPMug,CPOrnament,CPPillow,CPShower,CPTote,CPWater, CPBaby,CPBabyHat,CPTMaternity,CPLisence,CPKeepsake))
+
+```
+
+## Which Category is Selling the Most Often
+
+```{r, warning=FALSE, message=FALSE}
+CPD1<-CP1 %>% group_by(Broad_Product_Type) %>% summarize(Frequecny_Of_Product = n()) %>% filter(Frequecny_Of_Product >300) 
+CPD1P<-CPD1 %>% ggplot(aes(x=reorder(Broad_Product_Type, Frequecny_Of_Product), y=Frequecny_Of_Product), ylab="Quantity of Product Type Sold") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+CPD1P + ggtitle("Number Of Sales Including Product In Last 5 Years ") + ylab("Total Sales of this Product was in") +xlab("Product Type")
+```
+
+It is important to note this graph does not include quanity of product just the number of sales cases it had.  There are cases when more than single product is sold in sale this is just showing the number of sales in which these products were sold.
+
+
+
+```{r,warning=FALSE}
+
+## Which Product Makes The Most By Year
+CP3<-CP1 %>% mutate(
+  Length=case_when(str_length(CP1$Ordered) == 6 ~ "6",
+          str_length(CP1$Ordered) == 7 ~ "7",
+          str_length(CP1$Ordered) == 8~ "8",
+))
+          CP3<-CP3 %>% mutate(Year=
+case_when (
+  Length==6 ~ substr(CP3$Ordered,5,6),
+  Length==7 ~ substr(CP3$Ordered,6,7),
+  Length==8 ~ substr(CP3$Ordered,7,8)
+))
+
+
+
+##Graph of Product Types Spread Over Years          
+          
+#ProductYear<-table(Product=CP3$Broad_Product_Type,Year=CP3$Year)
+
+#pal<-palette(c("red","orange1","yellow1","green1","blue1","darkmagenta", "blue2", "blue3", "coral", "yellow3","azure","purple1","purple2","chartreuse3" , "purple4","brown1" ,"burlywood2"))
+
+#barplot(ProductYear, beside=TRUE, xlab="Year", main="Frequency of Product Type By Year", col=pal)
+#legend(x, y=NULL, legend, fill, col, bg)
+
+
+
+## Look at total sales over time. A graph to look at when sales peaked not useful really just a defeatist thing. So no use to us.
+```
+
+```{r, warning=FALSE, include=FALSE}
+## Filtering down to each year.
+#CP3<-CP3 %>% filter(Year==15) %>% mutate(Year="2015")
+#CP3<-CP3 %>% filter(Year==16)%>% mutate(Year="2016")
+#CP3<-CP3 %>% filter(Year==17)%>% mutate(Year="2017")
+#CP3<-CP3 %>% filter(Year==18)%>% mutate(Year="2018")
+#CP3<-CP3 %>% filter(Year==19)%>% mutate(Year="2019")
+#CP3<-CP3 %>% filter(Year==20)%>% mutate(Year="2029")
+
+
+#CP4<-CP3 %>% group_by(Broad_Product_Type,Year) %>%  summarize(Frequecny_Of_Product = n()) %>% filter(Frequecny_Of_Product >2000) 
+
+
+#ProductYear<-table(Product=CP4$Broad_Product_Type,Year=CP4$Year)
+
+#pal2<-palette(c("red","yellow","orange","blue1"))
+#pal<-palette(c("red","orange1","yellow1","green1","blue1","darkmagenta", "blue2", "blue3", "coral", "yellow3","azure","purple1","purple2","chartreuse3" , "purple4","brown1" ,"burlywood2"))
+
+#barplot(ProductYear, beside=TRUE, xlab="Year", main="Frequency of Product Type By Year", col=pal2)
+
+#use broadproduct Name as the label for the legend
+
+CP15<-CP3 %>% filter(Year==15) %>% mutate(Year="2015")
+CP16<-CP3 %>% filter(Year==16)%>% mutate(Year="2016")
+CP17<-CP3 %>% filter(Year==17)%>% mutate(Year="2017")
+CP18<-CP3 %>% filter(Year==18)%>% mutate(Year="2018")
+CP19<-CP3 %>% filter(Year==19)%>% mutate(Year="2019")
+CP20<-CP3 %>% filter(Year==20)%>% mutate(Year="2029")
+
+CPY <- do.call("rbind",list(CP15,CP16,CP17,CP18,CP19,CP20))
+
+```
+
+## Sales By Product By Year {.tabset .tabset-fade}
+
+
+### 2015
+
+```{r, warning=FALSE, message=FALSE}
+CPD15<-CP15 %>% group_by(Broad_Product_Type) %>% summarize(Frequecny_Of_Product = n()) %>% filter(Frequecny_Of_Product >300) 
+CPDYP<-CPD15 %>% ggplot(aes(x=reorder(Broad_Product_Type, Frequecny_Of_Product), y=Frequecny_Of_Product), ylab="Quantity of Product Type Sold") + geom_col(fill="Orange", color="black") + coord_flip()
+
+CPDYP + ggtitle("Number Of Sales in 2015 By Product Type") + ylab("Total Sales of this Product was in") +xlab("Product Type")
+```
+
+### 2016
+
+```{r, warning=FALSE, message=FALSE}
+CPD16<-CP16 %>% group_by(Broad_Product_Type) %>% summarize(Frequecny_Of_Product = n()) %>% filter(Frequecny_Of_Product >300) 
+CPDYP<-CPD16 %>% ggplot(aes(x=reorder(Broad_Product_Type, Frequecny_Of_Product), y=Frequecny_Of_Product), ylab="Quantity of Product Type Sold") + geom_col(fill="Yellow", color="black") + coord_flip()
+
+CPDYP + ggtitle("Number Of Sales in 2016 By Product Type") + ylab("Total Sales of this Product was in") +xlab("Product Type")
+```
+
+### 2017
+
+```{r, warning=FALSE, message=FALSE}
+CPD17<-CP17 %>% group_by(Broad_Product_Type) %>% summarize(Frequecny_Of_Product = n()) %>% filter(Frequecny_Of_Product >300) 
+CPDYP<-CPD17 %>% ggplot(aes(x=reorder(Broad_Product_Type, Frequecny_Of_Product), y=Frequecny_Of_Product), ylab="Quantity of Product Type Sold") + geom_col(fill="Green", color="black") + coord_flip()
+
+CPDYP + ggtitle("Number Of Sales in 2016 By Product Type") + ylab("Total Sales of this Product was in") +xlab("Product Type")
+```
+
+### 2018
+
+```{r, warning=FALSE, message=FALSE}
+CPD18<-CP18 %>% group_by(Broad_Product_Type) %>% summarize(Frequecny_Of_Product = n()) %>% filter(Frequecny_Of_Product >300) 
+CPDYP<-CPD18 %>% ggplot(aes(x=reorder(Broad_Product_Type, Frequecny_Of_Product), y=Frequecny_Of_Product), ylab="Quantity of Product Type Sold") + geom_col(fill="Blue", color="black") + coord_flip()
+
+CPDYP + ggtitle("Number Of Sales in 2018 By Product Type") + ylab("Total Sales of this Product was in") +xlab("Product Type")
+
+## It would be really nice if I could have it ordered, and hve it switch between different types of Graphs using a drop down, so a user to could tell, okay now show me 2019, okay now show me the ordered, now show me them, rather, show changes in the product type over the years.  I could narrow this down just to a month by month approach or a year by year approach, for each product, or a month and year approach..
+```
+
+### 2019
+
+```{r, warning=FALSE, message=FALSE}
+CPD19<-CP19 %>% group_by(Broad_Product_Type) %>% summarize(Frequecny_Of_Product = n()) %>% filter(Frequecny_Of_Product >300) 
+CPDYP<-CPD19 %>% ggplot(aes(x=reorder(Broad_Product_Type, Frequecny_Of_Product), y=Frequecny_Of_Product), ylab="Quantity of Product Type Sold") + geom_col(fill="Purple", color="black") + coord_flip()
+
+CPDYP + ggtitle("Number Of Sales in 2016 By Product Type") + ylab("Total Sales of this Product was in") +xlab("Product Type")
+```
+
+
+
+
+```{r}
+## For Loop For Finding Months
+##If of length 6 then 
+##
+
+CP6<-CP1 %>% 
+  mutate(
+    Month= case_when(
+      substr(CP1$Ordered, start=2,stop=2)=="/" ~ substr(CP1$Ordered, start=1,stop=1),
+      substr(CP1$Ordered,start=3,stop=3)=="/" ~ substr(CP1$Ordered,start=1,stop=2)
+      
+    ))
+    
+  
+```
+
+
+
+
+```{r, message=FALSE,warning=FALSE}
+CPJan<-CP6 %>% filter(Month==1)
+CPFeb<-CP6 %>% filter(Month==2)
+CPMar<-CP6 %>% filter(Month==3)
+CPApr<-CP6 %>% filter(Month==4)
+CPMay<-CP6 %>% filter(Month==5)
+CPJun<-CP6 %>% filter(Month==6)
+CPJul<-CP6 %>% filter(Month==7)
+CPAug<-CP6 %>% filter(Month==8)
+CPSep<-CP6 %>% filter(Month==9)
+CPOct<-CP6 %>% filter(Month==10)
+CPNov<-CP6 %>% filter(Month==11)
+CPDec<-CP6 %>% filter(Month==12)
+
+CPMonths <- do.call("rbind",list(CPJan,CPFeb,CPMar,CPApr,CPMay,CPJun,CPJul,CPAug,CPSep,CPOct,CPNov,CPDec))
+
+
+```
+
+
+## Sales By Type See Differently 
+```{r, include=TRUE}
+
+ggplot(data= CPMonths,aes(x=Broad_Product_Type,y=Total, color=Broad_Product_Type))+
+  geom_quasirandom()+
+  labs(x="Product", y="Reveune Generated In Sale", color="Product", title="Reveune By Individual Sale And Product")
+
+
+ggplot(data= CPMonths,aes(x=Broad_Product_Type,y=Total, color=Broad_Product_Type))+
+geom_col()+
+labs(title="It All Adds Up",x="Product", y="Reveune Generated In Sale", color="Product")
+
+```
+
+
+
+
+## By Month {.tabset .tabset-fade}
+
+### January
+
+```{r, message=FALSE,warning=FALSE}
+
+Mug<-CPMonths %>% filter(Broad_Product_Type=="Mug") 
+
+###
+
+CPJanG<-CPJan %>% group_by(Broad_Product_Type) %>% summarize(Number_Of_Sales = n()) %>% filter(Number_Of_Sales >0) 
+
+CPMonthG<-CPJanG %>% ggplot(aes(x=reorder(Broad_Product_Type, Number_Of_Sales), y=Number_Of_Sales), ylab="Quantity of Product Type Sold") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+CPMonthG + ggtitle("Product Type Distribution In January") + ylab("Total Sales") +xlab("Product Type")
+```
+
+### February
+
+```{r, message=FALSE, warning=FALSE}
+CPFebG<-CPFeb %>% group_by(Broad_Product_Type) %>% summarize(Number_Of_Sales = n()) %>% filter(Number_Of_Sales >0) 
+CPMonthG<-CPFebG %>% ggplot(aes(x=reorder(Broad_Product_Type, Number_Of_Sales), y=Number_Of_Sales), ylab="Quantity of Product Type Sold") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+CPMonthG + ggtitle("Product Type Distribution In February") + ylab("Total Sales") +xlab("Product Type")
+```
+
+
+### March
+
+```{r, message=FALSE, warning=FALSE}
+CPMarG<-CPMar %>% group_by(Broad_Product_Type) %>% summarize(Number_Of_Sales = n()) %>% filter(Number_Of_Sales >0) 
+CPMonthG<-CPMarG %>% ggplot(aes(x=reorder(Broad_Product_Type, Number_Of_Sales), y=Number_Of_Sales), ylab="Quantity of Product Type Sold") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+CPMonthG + ggtitle("Product Type Distribution In March") + ylab("Total Sales") +xlab("Product Type")
+```
+
+### April
+
+```{r, message=FALSE, warning=FALSE}
+CPAprG<-CPApr %>% group_by(Broad_Product_Type) %>% summarize(Number_Of_Sales = n()) %>% filter(Number_Of_Sales >0) 
+CPMonthG<-CPAprG %>% ggplot(aes(x=reorder(Broad_Product_Type, Number_Of_Sales), y=Number_Of_Sales), ylab="Quantity of Product Type Sold") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+CPMonthG + ggtitle("Product Type Distribution In April") + ylab("Total Sales") +xlab("Product Type")
+```
+
+### May
+
+```{r, message=FALSE, warning=FALSE}
+CPMayG<-CPMay %>% group_by(Broad_Product_Type) %>% summarize(Number_Of_Sales = n()) %>% filter(Number_Of_Sales >0) 
+CPMonthG<-CPMayG %>% ggplot(aes(x=reorder(Broad_Product_Type, Number_Of_Sales), y=Number_Of_Sales), ylab="Quantity of Product Type Sold") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+CPMonthG + ggtitle("Product Type Distribution In May") + ylab("Total Sales") +xlab("Product Type")
+```
+
+### June
+
+```{r, message=FALSE, warning=FALSE}
+CPJunG<-CPJun %>% group_by(Broad_Product_Type) %>% summarize(Number_Of_Sales = n()) %>% filter(Number_Of_Sales >0) 
+CPMonthG<-CPJunG %>% ggplot(aes(x=reorder(Broad_Product_Type, Number_Of_Sales), y=Number_Of_Sales), ylab="Quantity of Product Type Sold") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+CPMonthG + ggtitle("Product Type Distribution In June") + ylab("Total Sales") +xlab("Product Type")
+```
+
+### July
+
+```{r, message=FALSE, warning=FALSE}
+CPJulG<-CPJul %>% group_by(Broad_Product_Type) %>% summarize(Number_Of_Sales = n()) %>% filter(Number_Of_Sales >0) 
+CPMonthG<-CPJulG %>% ggplot(aes(x=reorder(Broad_Product_Type, Number_Of_Sales), y=Number_Of_Sales), ylab="Quantity of Product Type Sold") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+CPMonthG + ggtitle("Product Type Distribution In July") + ylab("Total Sales") +xlab("Product Type")
+```
+
+### August
+
+```{r, message=FALSE, warning=FALSE}
+CPAugG<-CPAug %>% group_by(Broad_Product_Type) %>% summarize(Number_Of_Sales = n()) %>% filter(Number_Of_Sales >0) 
+CPMonthG<-CPAugG %>% ggplot(aes(x=reorder(Broad_Product_Type, Number_Of_Sales), y=Number_Of_Sales), ylab="Quantity of Product Type Sold") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+CPMonthG + ggtitle("Product Type Distribution In August") + ylab("Total Sales") +xlab("Product Type")
+```
+
+### September
+
+```{r, message=FALSE, warning=FALSE}
+CPSepG<-CPSep %>% group_by(Broad_Product_Type) %>% summarize(Number_Of_Sales = n()) %>% filter(Number_Of_Sales >0) 
+CPMonthG<-CPSepG %>% ggplot(aes(x=reorder(Broad_Product_Type, Number_Of_Sales), y=Number_Of_Sales), ylab="Quantity of Product Type Sold") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+CPMonthG + ggtitle("Product Type Distribution In September") + ylab("Total Sales") +xlab("Product Type")
+```
+
+### October
+
+```{r, message=FALSE, warning=FALSE}
+CPOctG<-CPOct %>% group_by(Broad_Product_Type) %>% summarize(Number_Of_Sales = n()) %>% filter(Number_Of_Sales >0) 
+CPMonthG<-CPOctG %>% ggplot(aes(x=reorder(Broad_Product_Type, Number_Of_Sales), y=Number_Of_Sales), ylab="Quantity of Product Type Sold") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+CPMonthG + ggtitle("Product Type Distribution In October") + ylab("Total Sales") +xlab("Product Type")
+```
+
+
+### November
+
+```{r, message=FALSE, warning=FALSE}
+CPNovG<-CPNov %>% group_by(Broad_Product_Type) %>% summarize(Number_Of_Sales = n()) %>% filter(Number_Of_Sales >0) 
+CPMonthG<-CPNovG %>% ggplot(aes(x=reorder(Broad_Product_Type, Number_Of_Sales), y=Number_Of_Sales), ylab="Quantity of Product Type Sold") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+CPMonthG + ggtitle("Product Type Distribution In November") + ylab("Total Sales") +xlab("Product Type")
+```
+
+### December
+
+```{r, message=FALSE, warning=FALSE}
+CPDecG<-CPDec %>% group_by(Broad_Product_Type) %>% summarize(Number_Of_Sales = n()) %>% filter(Number_Of_Sales >0) 
+CPMonthG<-CPDecG %>% ggplot(aes(x=reorder(Broad_Product_Type, Number_Of_Sales), y=Number_Of_Sales), ylab="Quantity of Product Type Sold") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+CPMonthG + ggtitle("Product Type Distribution In December") + ylab("Total Sales") +xlab("Product Type")
+```
+
+
+## Month And Year
+
+
+
+
+```{r}
+#ProductYear<-table(Product=CP4$Broad_Product_Type,Year=CP4$Year)
+
+#pal2<-palette(c("Orange","Yellow","Green","Blue","Purple"))
+
+#barplot(ProductYear, beside=TRUE, xlab="Year", main="Frequency of Product Type By Year", col=pal2)
+
+#use broadproduct Name as the label for the legend
+#legend("bottomleft", 
+#  legend = c("Group 1", "Group 2"), 
+#  col = c(rgb(0.2,0.4,0.1,0.7), 
+#  rgb(0.8,0.4,0.1,0.7)), 
+#  pch = c(17,19), 
+#  bty = "n", 
+#  pt.cex = 2, 
+#  cex = 1.2, 
+#  text.col = "black", 
+ # horiz = F , 
+#  inset = c(0.1, 0.1))
+
+```
+
+
+
+## Product To Make The Most Money
+
+```{r,message=FALSE,warning=FALSE, include=FALSE}
+CPD2P<-CP1 %>% group_by(Broad_Product_Type) %>% summarise(Reveuene_Made = sum(Total)) 
+```
+
+```{r,message==FALSE,warning=FALSE}
+ProductType2P<-CPD2P %>% ggplot(aes(x=reorder(Broad_Product_Type, Reveuene_Made), y=Reveuene_Made), ylab="Quantity of Product Sold Company Wide") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+ProductType2P + ggtitle("Reveune By Category Last 5 Years") + ylab("Total Revuene") +xlab("Category")
+```
+
+**Above But As A Pie Chart**
+
+```{r, message=FALSE}
+library(ggplot2)
+library(scales)
+
+Pie1<-ggplot(CPD2P,aes(x="Broad_Product_Type",y=Reveuene_Made,fill=Broad_Product_Type))+geom_bar(width=1,stat="identity")
+Pieact<-Pie1+coord_polar("y", start=0)
+
+palette=c("red","Orange","Yellow","Green","Blue","Purple")
+
+pie(CPD2P$Reveuene_Made, CPD2P$Broad_Product_Type, radius=-1, main="Revuene By Product Type", col=rainbow(length(CPD2P)))
+
+```
+
+
+```{r, message=FALSE}
+pander(CPD2P)
+```
+
+```{r}
+#TotalRev<-sum(CPD2P$Reveuene_Made)
+#CPD2P<-CPD2P %>% mutate(Percentage=(Reveuene_Made/TotalRev))
+
+#Pieact+
+ # geom_text(aes(y = Reveuene_Made/17 + c(0, cumsum(Reveuene_Made)[-length(Reveuene_Made)]), 
+            #label = (Percentage), size=1))
+
+```
+
+
+
+
+
+## Canceled Sales {.tabset .tabset-fade}
+
+```{r,message=FALSE,warning=FALSE}
+CPData5<-CPData
+CPData5$Total <- as.numeric(gsub("$","",CPData$Total, fixed = TRUE))
+#CPData5<-CPData2 %>% filter(Total, !is.na(Total))
+CPData4<-CPData2
+     CPCancelled<-filter(CPData5, !grepl("shipped",Status)) 
+   
+```
+
+
+```{r,message=FALSE,warning=FALSE, include=FALSE}
+
+CPTMaternity2<-filter(CPCancelled, grepl("Maternity",Product)) %>% mutate(Broad_Product_Type="Maternity")
+## Now to remove it from the original Working Data Set meaning it wont be double counted for Baby because both Baby and Maternity are shared in the same
+CPCancelled<-filter(CPCancelled, !grepl("Maternity",Product))
+
+# Baby Hats
+  CPBabyHat2<-filter(CPCancelled, grepl("Baby Hat",Product)) %>% mutate(Broad_Product_Type="Baby Hat")
+CPCancelled<-filter(CPCancelled, !grepl("Baby Hat",Product))
+
+
+# Baby
+  CPBaby2<-filter(CPCancelled, grepl("Baby",Product)) %>% mutate(Broad_Product_Type="Baby")
+CPCancelled<-filter(CPCancelled, !grepl("Baby",Product))
+
+ # Okay... double counting, baby and Baby T-shrits.... baby is presenting some issues
+  
+#  Mugs
+  CPMug2<-filter(CPCancelled, grepl("Mug",Product)) %>% mutate(Broad_Product_Type="Mug")
+  CPCancelled<-filter(CPCancelled, !grepl("Mug",Product))
+  
+  
+  #Kids
+  CPKids2<-filter(CPCancelled, grepl("Kids",Product)) %>% mutate(Broad_Product_Type="Kids")
+  CPCancelled<-filter(CPCancelled, !grepl("Kids",Product))
+ 
+  #Hoodies
+    CPHoodie2<-filter(CPCancelled, grepl("Hoodie",Product)) %>% mutate(Broad_Product_Type="Hoodie")
+    CPCancelled<-filter(CPCancelled, !grepl("Hoodie",Product))
+  #Aprons
+    CPApron2<-filter(CPCancelled, grepl("Apron",Product)) %>% mutate(Broad_Product_Type="Apron")
+    CPCancelled<-filter(CPCancelled, !grepl("Apron",Product))
+    #Tote Bags (combine anything that says tote bag)
+     CPTote2<-filter(CPCancelled, grepl("Tote",Product)) %>% mutate(Broad_Product_Type="Tote")
+     CPCancelled<-filter(CPCancelled, !grepl("Tote",Product))
+     
+    #License Plate Frames  (It doesnt like lisence plate frames for some reason)
+    CPLisence2<-filter(CPCancelled, grepl("Plate Frame",Product)) %>% mutate(Broad_Product_Type="Liscense Plate Frame") 
+  
+    CPCancelled<-filter(CPCancelled, !grepl("Plate Frame",Product))
+    
+     #Flip Flops
+     CPFlip2<-filter(CPCancelled, grepl("Flip Flop",Product)) %>% mutate(Broad_Product_Type="Flip Flop")
+     CPCancelled<-filter(CPCancelled, !grepl("Flip Flop",Product))
+     
+     #Baseball Hats
+      CPBaseCap2<-filter(CPCancelled, grepl("Baseball Cap",Product)) %>% mutate(Broad_Product_Type="Baseball Cap") 
+      CPCancelled<-filter(CPCancelled, !grepl("Baseball Cap",Product))
+      
+      #Shower Curtains
+     CPShower2<-filter(CPCancelled, grepl("Shower Curtain",Product)) %>% mutate(Broad_Product_Type="Shower Curtain")
+     CPCancelled<-filter(CPCancelled, !grepl("Shower Curtain",Product))
+     
+     #Ornaments (combine all styles of ornaments)
+     CPOrnament2<-filter(CPCancelled, grepl("Ornament",Product)) %>% mutate(Broad_Product_Type="Ornament")
+     CPCancelled<-filter(CPCancelled, !grepl("Ornament",Product))
+     
+     #Jewelry Boxes (might be called tile boxes?)
+     #(DOES NOT LIKE THIS ONE EITHER)
+     CPKeepsake2<-filter(CPCancelled, grepl("Keepsake",Product)) %>% mutate(Broad_Product_Type="Keepsake")
+       CPCancelled<-filter(CPCancelled, !grepl("Keepsake",Product))
+     #Coasters
+     #CPCoaster<-filter(CPCancelled, grepl("Tile Coaster",Product)) %>% mutate(Broad_Product_Type="Coaster")
+     
+     #Water Bottles
+     CPWater2<-filter(CPCancelled, grepl("Water Bottle",Product)) %>% mutate(Broad_Product_Type="Water Bottle")
+     CPCancelled<-filter(CPCancelled, !grepl("Waterbottle",Product))
+     
+     #Pillows (combine all pillows)
+     
+     CPPillow2<-filter(CPCancelled, grepl("Pillow",Product)) %>% mutate(Broad_Product_Type="Pillow")
+     CPCancelled<-filter(CPCancelled, !grepl("Pillow",Product))
+     
+     CPTshirt2<-filter(CPCancelled, grepl("T-Shirt",Product)) %>% mutate(Broad_Product_Type="T-Shirt")
+     
+     
+       CPOther2<-CPCancelled %>% mutate(Broad_Product_Type="Other")
+       
+     ##I can just add in more filtering statements for other product types we want to look at.
+     
+     ##suggestion, filter it into a new data frame, and then remove it from the previous one with a second filter statement at the same time that way previously used ones are no longer have a chance of being double counted. yeah I THINK that could work let see.)
+```
+
+
+```{r,message=FALSE,warning=FALSE}
+#merging the seperate tables (im sure there's a cleaner way)
+
+
+CPSelectedCancel <- do.call("rbind",list(CPTshirt2,CPApron2,CPFlip2,CPHoodie2,CPKids2,CPMug2,CPOrnament2,CPPillow2,CPShower2,CPTote2,CPWater2, CPBaby2,CPBabyHat2,CPTMaternity2,CPLisence2,CPKeepsake2,CPOther2))
+
+```
+
+
+### Which Products Are Canceled Most Often
+
+This is included as to know which products to avoid.
+
+```{r, message=FALSE, warning=FALSE}
+CPD4<-CPSelectedCancel %>% group_by(Broad_Product_Type) %>% summarize(Frequecny_Of_Product = n()) %>% filter(Frequecny_Of_Product >0) 
+CPD4P<-CPD4 %>% ggplot(aes(x=reorder(Broad_Product_Type, Frequecny_Of_Product), y=Frequecny_Of_Product), ylab="Quantity of Product Type Sold") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+
+CPD4P + ggtitle("Number Of Canceled Sales By Product In The Last Five Years ") + ylab("Total Canceled Sales") +xlab("Product Type")
+```
+
+The only Thing That is canceled it seems are T-Shirts, so there is no need to worry about product not printing well fitting resulting in lost sales atleast from a look back in the last fire years of canceled Sales.  It seems overwhelmingly that only T-Shirts are cancelled.
+
+
+### How Much Money Is Lost From Canceled Sales 
+
+This is more for telling Cafepress than time Spent
+
+```{r,message=FALSE,warning=FALSE}
+CPD5P<-CPSelectedCancel %>% group_by(Broad_Product_Type) %>% summarise(Reveuene_Lost = sum(Total)) 
+```
+
+```{r,message=FALSE,warning=FALSE}
+ProductType3P<-CPD5P %>% ggplot(aes(x=reorder(Broad_Product_Type, Reveuene_Lost), y=Reveuene_Lost), ylab="Quantity of Product Sold Company Wide") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+ProductType3P + ggtitle("Money Lost By Product Type From Cancelled Sales 2015-2020") + ylab("Total Revuene Lost From Sale Being Canceled (USD)") +xlab("Product")
+```
+
+
+## The Money
+How Much Money Has Been Made On CafePress in the Last Fire Years?
+```{r,message=FALSE,warning=FALSE}
+pander(sum(CP1$Total))
+```
+Is The Total In The Last Five Years On Cafepress
+
+Nothing To Shake a Stick At To Be Sure.
+This Number is Under Suspicion as its coming out to be more AFTER removing huge chunks of the data to focus on whats being looked at this is likely due to double counting.  
+
+There are only 3 Status Listed
+```{r,message=FALSE,warning=FALSE}
+pander(unique(CPData5$Status))
+```
+
+**How Much Money Is Lost From Those Sales**
+
+```{r,message=FALSE,warning=FALSE,include=FALSE}
+CPD5P<-CPD5P %>% filter(Broad_Product_Type!="Other")
+
+pander(sum(CPD5P$Reveuene_Lost))
+
+```
+
+This shows the over the last 5 years about $12000 dollars has been lost to canceled orders.
+
+
+
+```{r, include=FALSE}
+##IF LOOPS IN R
+#If string length is 6 long, check first with a split of the string to see where the slash is, if slash is at [1] then its a 1-9 month.  Meaning position [5] is the year what I suppose we really care about is position [5] only as for this data set [4] will always be the same. Becauase position [0] is the beginnign right?
+#If string length is 7 long check first the position [2] if no / then again is 1-9 (return 1-9) or maybe return position [0] because this would be a case when its a single diget month, and then we can use the single didget to determine the month.   ## Further, check last diget in this case and assign year. [6]
+#If Yes '/' for [2] then its a 10-12 month store position [1:2] in a string  of their own and then read that using a mutate as Oct, Nov, Dec.  Like wise do year
+#How do I check a strign length in R?
+
+
+
+
+#have the statments create a new category or each?
+#have a decision statment in each to check if its a 10-12 or 1-9 month copy the same mutate under each.
+  
+   
+      #if (Length==7 )
+     # {
+       # if(substr(CP3$Ordered,3,3=="/"))
+       # {
+       #   CP3<-CP3 %>% mutate(Month=substr(CP3$Ordered,1,2))
+          
+      #  }
+      #  else if(substr(CP3$Ordered,2,2=="/"))
+      #  {
+      #    CP3<-CP3 %>% mutate(Month=substr(CP3$Ordered,1,1))
+      #  }
+        
+        
+       #       CP3<-CP3 %>% mutate(Year==substr(CP3$Ordered,6,7))
+        
+       # }
+      
+   # if(Length==8)
+   # {
+   #           if(substr(CP3$Ordered,3,3=="/"))
+   #     {
+   #       CP3<-CP3 %>% mutate(Month=substr(CP3$Ordered,1,2))
+   #       
+    #    }
+     #   else if(substr(CP3$Ordered,2,2=="/"))
+    #    {
+     #     CP3<-CP3 %>% mutate(Month=substr(CP3$Ordered,1,1))
+    #    }
+      
+    #  CP3<-CP3 %>% mutate(Year==substr(CP3$Ordered,7,8))
+        
+      
+   # }
+
+#x<-length(CP1$Total)
+#i <- 0
+#while (i < x) {
+#if loop here
+  #if(Length=5) #6 length statement
+  #  CP3<-mutate(CP3, 
+    #            Month=
+   #        case_when( substr(CP3$Ordered,2,2=="/") ~ substr(CP3$Ordered,1,1)
+                  
+    #       ))
+    
+    #else (Length=6) #7 length statement 1/15/15 , or 12/1/15 ( counts)
+  
+ # else() #8 length statement 12/15/15 (7 length)
+  
+  #How do I make this iterative? Sequnetially interative? Do i just seperate by vector lenght and make more smaller data peices that could work, but If I could have it look at each entry one after the other, are they labeled? I could give them labels. Ah they are labeled
+  
+
+
+```
+
+
+```{r, message=FALSE, warning=FALSE, Include=FALSE}
+## Country
+CPlocGreatBritian<-CP1 %>% filter(grepl(", GB",Location)) %>% mutate(Country="Great Britian")
+CPlocIreland<-CP1 %>% filter(grepl(", IE",Location)) %>% mutate(Country="Ireland")
+CPlocCanada<-CP1 %>% filter(grepl(", CA",Location)) %>% mutate(Country="Canada")
+CPlocUS<-CP1 %>% filter(grepl(", US",Location)) %>% mutate(Country="USA")
+
+CPCountry<-do.call("rbind",list(CPlocGreatBritian,CPlocIreland,CPlocCanada,CPlocUS))
+
+```
+
+```{r,include=FALSE}
+Countrytogroup<-table(Product=CPCountry$Broad_Product_Type,County=CPCountry$Country)
+
+pal<-palette(c("red","orange1","yellow1","green1","blue1","darkmagenta"))
+
+barplot(Countrytogroup, beside=TRUE, xlab="Country", main="Frequency of Product Type Sales By Country", col=pal)
+
+```
+
+
+It of course should come as no surpise that the US is the dominate market for cafe press.
+
+## Which Product Sells in The Greatest Quantity
+
+(This Doesnt Matter For The Company)
+
+```{r,message=FALSE, warning=FALSE}
+QunatityData<-CP1 %>% group_by(Broad_Product_Type) %>% summarise(Quantity = sum(Qty)) 
+```
+
+```{r,message=FALSE, warning=FALSE}
+QuantityGraph<-QunatityData %>% ggplot(aes(x=reorder(Broad_Product_Type, Quantity), y=Quantity), ylab="Quantity of Product Sold Company Wide") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+QuantityGraph + ggtitle("Product Types By Quanity Sold Last 5 Years") + ylab("Total Quantity Brought in By Product") +xlab("Product")
+```
+
+This shows that While Mugs Have The Most Sales They Are Cases When Multiple Mugs are selling.  This isnt really that insightful as its obvious that mugs often go together or one is buying multiple mugs for multiple people at once
+
+## US States
+
+This is a look at US States, Its Not That Insightful either. As Of Course California is the top Seller.
+
+```{r,message=FALSE, warning=FALSE,include=FALSE}
+
+CPStateAlabma<-CP1 %>% filter(grepl("AL,",Location)) %>% mutate(US_State="Alabama")
+
+CPStateAlaska<-CP1 %>% filter(grepl("AK,",Location)) %>% mutate(US_State="Alaska")
+
+CPStateArizona<-CP1 %>% filter(grepl("AZ,",Location)) %>% mutate(US_State="Arizona")
+
+CPStateArkansas<-CP1 %>% filter(grepl("AR,",Location)) %>% mutate(US_State="Arkansas")
+
+CPStateCalifornia<-CP1 %>% filter(grepl("CA,",Location)) %>% mutate(US_State="Califronia")
+
+CPStateColorado<-CP1 %>% filter(grepl("CO,",Location)) %>% mutate(US_State="Colorado")
+
+CPStateConnecticut<-CP1 %>% filter(grepl("CT,",Location)) %>% mutate(US_State="Connecticut")
+
+CPStateDelaware<-CP1 %>% filter(grepl("DE,",Location)) %>% mutate(US_State="Delaware")
+
+CPStateFlorida<-CP1 %>% filter(grepl("FL,",Location)) %>% mutate(US_State="Florida")
+
+CPStateGeorgia<-CP1 %>% filter(grepl("GA,",Location)) %>% mutate(US_State="Georgia")
+
+CPStateHawaii<-CP1 %>% filter(grepl("HI,",Location)) %>% mutate(US_State="Hawaii")
+
+CPStateIdaho<-CP1 %>% filter(grepl("ID,",Location)) %>% mutate(US_State="Idaho")
+
+CPStateIllinois<-CP1 %>% filter(grepl("IL,",Location)) %>% mutate(US_State="Illinois")
+
+CPStateIndiana<-CP1 %>% filter(grepl("IN,",Location)) %>% mutate(US_State="Indiana")
+
+CPStateIowa<-CP1 %>% filter(grepl("IA,",Location)) %>% mutate(US_State="Iowa")
+
+CPStateKansas<-CP1 %>% filter(grepl("KS,",Location)) %>% mutate(US_State="Kansas")
+
+CPStateLKentucky<-CP1 %>% filter(grepl("KY,",Location)) %>% mutate(US_State="Kentucky")
+
+CPStateLouisiana<-CP1 %>% filter(grepl("LA,",Location)) %>% mutate(US_State="Louisiana")
+
+CPStateMaine<-CP1 %>% filter(grepl("ME,",Location)) %>% mutate(US_State="Maine")
+
+CPStateMaryland<-CP1 %>% filter(grepl("MD,",Location)) %>% mutate(US_State="Maryland")
+
+CPStateMassachusetts<-CP1 %>% filter(grepl("MA,",Location)) %>% mutate(US_State="Massachusetts")
+
+CPStateMichigan<-CP1 %>% filter(grepl("MI,",Location)) %>% mutate(US_State="Michigan")
+
+CPStateMinnesota<-CP1 %>% filter(grepl("MN,",Location)) %>% mutate(US_State="Minnesota")
+
+CPStateMississippi<-CP1 %>% filter(grepl("MS,",Location)) %>% mutate(US_State="Mississippi")
+
+CPStateMissouri<-CP1 %>% filter(grepl("MO,",Location)) %>% mutate(US_State="Missouri")
+
+CPStateMontana<-CP1 %>% filter(grepl("MT,",Location)) %>% mutate(US_State="Montana")
+
+CPStateNebraska<-CP1 %>% filter(grepl("NE,",Location)) %>% mutate(US_State="Nebraska")
+
+CPStateNevada<-CP1 %>% filter(grepl("NV,",Location)) %>% mutate(US_State="Nevada")
+
+CPStateNewHampshire<-CP1 %>% filter(grepl("NH,",Location)) %>% mutate(US_State="New Hampshire")
+
+CPStateNewJersey<-CP1 %>% filter(grepl("NJ,",Location)) %>% mutate(US_State="New Jersey")
+
+CPStateNewMexio<-CP1 %>% filter(grepl("NM,",Location)) %>% mutate(US_State="New Mexico")
+
+CPStateNewYork<-CP1 %>% filter(grepl("NY,",Location)) %>% mutate(US_State="New York")
+
+CPStateNorthCarolina<-CP1 %>% filter(grepl("NC,",Location)) %>% mutate(US_State="North Carolina")
+
+CPStateNorthDakota<-CP1 %>% filter(grepl("ND,",Location)) %>% mutate(US_State="North Dakota")
+
+CPStateOhio<-CP1 %>% filter(grepl("OH,",Location)) %>% mutate(US_State="Ohio")
+
+CPStateOklahoma<-CP1 %>% filter(grepl("OK,",Location)) %>% mutate(US_State="Oklahoma")
+
+CPStateOregon<-CP1 %>% filter(grepl("OR,",Location)) %>% mutate(US_State="Oregon")
+
+CPStatePennsylvania<-CP1 %>% filter(grepl("PA,",Location)) %>% mutate(US_State="Pennsylvania")
+
+CPStateRhodeIsland<-CP1 %>% filter(grepl("RI,",Location)) %>% mutate(US_State="Rhode Island")
+
+CPStateSouthCarolina<-CP1 %>% filter(grepl("SC,",Location)) %>% mutate(US_State="South Carolina")
+
+CPStateSouthDakota<-CP1 %>% filter(grepl("SD,",Location)) %>% mutate(US_State="SouthDakota")
+
+CPStateTennesse<-CP1 %>% filter(grepl("TN,",Location)) %>% mutate(US_State="Tennesse")
+
+CPStateTexas<-CP1 %>% filter(grepl("TX,",Location)) %>% mutate(US_State="Texas")
+
+CPStateUtah<-CP1 %>% filter(grepl("UT,",Location)) %>% mutate(US_State="Utah")
+
+CPStateVermont<-CP1 %>% filter(grepl("VT,",Location)) %>% mutate(US_State="Vermont")
+
+CPStateVirginia<-CP1 %>% filter(grepl("VA,",Location)) %>% mutate(US_State="Virginia")
+
+CPStateWashington<-CP1 %>% filter(grepl("WA,",Location)) %>% mutate(US_State="Washington")
+
+CPStateWestVirginia<-CP1 %>% filter(grepl("WV,",Location)) %>% mutate(US_State="West Virginia")
+
+CPStateWisconsin<-CP1 %>% filter(grepl("Wi,",Location)) %>% mutate(US_State="Wisconsin")
+
+CPStateWyoming<-CP1 %>% filter(grepl("WY,",Location)) %>% mutate(US_State="Wyoming")
+```
+
+
+```{r,message=FALSE, warning=FALSE,Include=FALSE}
+CP1States<-do.call("rbind",list(CPStateAlabma,CPStateAlaska,CPStateArizona,CPStateCalifornia,CPStateColorado,CPStateConnecticut,CPStateDelaware, CPStateFlorida, CPStateGeorgia, CPStateHawaii, CPStateIdaho, CPStateIllinois, CPStateIndiana, CPStateIowa, CPStateLKentucky, CPStateMaine, CPStateMaryland, CPStateMichigan, CPStateMontana, CPStateNebraska, CPStateNevada, CPStateNewHampshire, CPStateNewJersey, CPStateNewMexio, CPStateNewYork, CPStateNorthCarolina, CPStateNorthDakota, CPStateOhio,CPStateOklahoma,CPStateOregon,CPStateSouthCarolina,CPStateSouthDakota,CPStateTennesse,CPStateTexas,CPStateRhodeIsland,CPStateUtah,CPStateVermont,CPStateVirginia,CPStateWashington,CPStateWestVirginia,CPStateMinnesota,CPStateMassachusetts,CPStateWisconsin,CPStateWyoming))
+
+CP1States %>% write.csv("HWSalesByState.csv")
+
+```
+
+```{r,,message=FALSE, warning=FALSE, include=FALSE}
+
+library(lubridate)
+library(leaflet)
+
+CP1States<-CP1States %>% mutate(year=year(mdy(Completed)))
+
+CP1States$year<-as.factor(CP1States$year)
+
+Statenumbers<-CP1States %>% group_by(US_State, year) %>% summarise(Money_Made_By_State = sum(Total)) 
+
+```
+
+
+```{r,message=FALSE, warning=FALSE}
+Statemoneygraph<-Statenumbers %>% ggplot(aes(x=reorder(US_State, Money_Made_By_State), y=Money_Made_By_State), ylab="Quantity of Product Sold Company Wide") + geom_col(fill="firebrick", color="black") + coord_flip()
+
+Statemoneygraph + ggtitle("Money Brought In") + ylab("Total Revenue in State") +xlab("U.S. State")
+```
+
+
+
+```{r}
+library(sf)
+library(USAboundaries)
+library(tidyverse)
+library(leaflet)
+
+
+states<-us_states() %>% filter(state_name!="Alaska", state_name!="Hawaii") %>% rename(US_State=state_name)
+
+StateGeo<-left_join(Statenumbers, states, by="US_State")
+StateGeo<-StateGeo %>% filter(US_State!="Alaska", US_State!="Hawaii")
+
+```
+
+
+```{r}
+pal <- colorNumeric(palette = c("black", "green"),
+                    domain  = min(StateGeo$Money_Made_By_State):max(StateGeo$Money_Made_By_State))
+
+
+  StateGeo<-StateGeo %>% mutate(long = map_dbl(geometry, ~st_centroid(.x)[[1]]),
+         lat = map_dbl(geometry, ~st_centroid(.x)[[2]]))
+
+
+```
+
+
+```{r}
+myleaflet <- leaflet() %>% 
+  setView(lng = -99, lat = 40, zoom = 4) %>% 
+  addProviderTiles(providers$Esri.NatGeoWorldMap) %>%
+  
+  addPolygons(data = st_as_sf(filter(StateGeo, year==2020)),
+              group = 2020,
+              fillOpacity = .5,
+              fillColor = ~pal(Money_Made_By_State)) %>% 
+  addPolygons(data = st_as_sf(filter(StateGeo, year == 2019)),
+              group = 2019,
+              fillOpacity = .5,
+              fillColor = ~pal(Money_Made_By_State)) %>% 
+  addPolygons(data = st_as_sf(filter(StateGeo, year == 2018)),
+              group = 2018,
+              fillOpacity = .5,
+              fillColor = ~pal(Money_Made_By_State)) %>% 
+  addPolygons(data = st_as_sf(filter(StateGeo, year == 2017)),
+              group = 2017,
+              fillOpacity = .5,
+              fillColor = ~pal(Money_Made_By_State)) %>% 
+    addPolygons(data = st_as_sf(filter(StateGeo, year == 2016)),
+              group = 2016,
+              fillOpacity = .5,
+              fillColor = ~pal(Money_Made_By_State)) %>% 
+    addPolygons(data = st_as_sf(filter(StateGeo, year == 2015)),
+              group = 2015,
+              fillOpacity = .5,
+              fillColor = ~pal(Money_Made_By_State)) %>% 
+  addPolygons(data = states, weight = 1,
+              group = "states",
+              fill = FALSE, 
+              color = "black") %>% 
+  addLayersControl(
+    baseGroups = c("2015", "2016", "2017", "2018", "2019", "2020"),
+    overlayGroups = "states",
+    options = layersControlOptions(collapsed = FALSE))  
+
+myleaflet%>% 
+ addMarkers(data = StateGeo,
+             lng = ~long,
+             lat = ~lat,
+             label = ~paste(US_State, "$", Money_Made_By_State, "Year", year, sep = " "),
+             clusterOptions = markerClusterOptions()) %>% 
+ addPolygons(data = states, fill = FALSE, weight = 2, color="blue")
+
+
+# myleaflet %>% 
+#     addLegend(position = "topright", pal = pal, values = StateGeo$Money_Made_By_State,
+#             title = "Total Money Made",
+#             opacity = 1)  %>% 
+# addMarkers(lng = ~long, lat = ~lat, label = ~paste(US_State, "=", Money_Made_By_State ))
+
+###Problems.
+##Coloring of States Doesnt Change Between Years
+##California and some others has a list for geomerty for some reason preventing coloring
+##mini charts?
+#nvm the coloring works, its just so drastic a difference its hard to tell.
+
+```
+
+
+```{r}
+myleaflet <- leaflet() %>% 
+  setView(lng = -99, lat = 40, zoom = 4) %>% 
+  addProviderTiles(providers$Esri.NatGeoWorldMap) %>%
+  
+  addPolygons(data = st_as_sf(filter(StateGeo, year=="2020")),
+              group = "2020",
+              fillOpacity = .5,
+              fillColor = ~pal(Money_Made_By_State)) %>% 
+  addPolygons(data = st_as_sf(filter(StateGeo, year == "2019")),
+              group = "2019",
+              fillOpacity = .5,
+              fillColor = ~pal(Money_Made_By_State)) %>% 
+  addPolygons(data = st_as_sf(filter(StateGeo, year == "2018")),
+              group = "2018",
+              fillOpacity = .5,
+              fillColor = ~pal(Money_Made_By_State)) %>% 
+  addPolygons(data = st_as_sf(filter(StateGeo, year == "2017")),
+              group = "2017",
+              fillOpacity = .5,
+              fillColor = ~pal(Money_Made_By_State)) %>% 
+    addPolygons(data = st_as_sf(filter(StateGeo, year == "2016")),
+              group = "2016",
+              fillOpacity = .5,
+              fillColor = ~pal(Money_Made_By_State)) %>% 
+    addPolygons(data = st_as_sf(filter(StateGeo, year == "2015")),
+              group = "2015",
+              fillOpacity = .5,
+              fillColor = ~pal(Money_Made_By_State)) %>% 
+  addPolygons(data = states, weight = 1,
+              group = "states",
+              fill = FALSE, 
+              color = "black") %>% 
+  addLayersControl(
+    baseGroups = c("2015", "2016", "2017", "2018", "2019", "2020"),
+    overlayGroups = "states",
+    options = layersControlOptions(collapsed = FALSE))  
+
+myleaflet%>% 
+ addMarkers(data = StateGeo,
+             lng = ~long,
+             lat = ~lat,
+             label = ~paste(US_State, "$", Money_Made_By_State, "Year", year, sep = " "),
+             clusterOptions = markerClusterOptions()) %>% 
+ addPolygons(data = states, fill = FALSE, weight = 2, color="blue")
+
+```
+
+
+```{r}
+# library(tidyquant)
+# library(quantmod)
+# library(dygraphs)
+# library(lubridate)
+# 
+# Kro<-CP1States %>% group_by(Completed)
+# 
+# Kro2<-Kro %>% timetk::tk_xts(date=as_date(Completed))
+# 
+# dygraph(data=Kro2$Test, main="Test Main")
+
+```
+
+
+
+Conclusion:
+There are many more directions I can take this in, for example breaking down sales by months, December always has been a peak period.  One of the problems is the state are so drastically seperated in revenue that comparsion is made difficult through the inclusion of outliers.  When we acutally look at the data, we see that Texas has 10 times the Revenue generated as almost any other individually displayed state. However California and New York Both have more than Texas, there was an issue with their geometry that hasnt been addressed yet.
+
+You'll note always an overall decrease as the years have gone by.  This is because of a variety of reasons.  One, the graph is showing the total made on each sale by state.  Rather the total reveune genrated in each state. However the company Homewiseshopper works through reduces royalties regularly, as well as sales dropping.  Cafepress has been a company that has struggled, being bought and sold several times.  It having all the look of a great asset, but under the hood has alot of problems still to work on.  The market is a dwindling one.  Not because there isnt in it, but rather because this particualr POD has not been receiving attention from Homewiseshopper in recent years.
+
+In the future a minichart showing various product breakdowns by State would be interesting to see if one sells more often in different states of it's pretty uniform.  
+
+For much of the data, there was just too much going on for a Facet to truly show it.  Breaking it down into tabs was my only way of making this workable at the time.  The differences in size and sear number of products being tracked made it such that to see it in its true light required this view.  This itself is already an aggregation, showing instead broad categories of products.  All in all this has been an excellent project, and theres still more that can be done here.
+
+
+One other thing all 2020 data was first incomplete as the year was not yet over when it was given, and second was severely effected by Corona Virus.
