@@ -1,0 +1,240 @@
+---
+title: "Case Study 4"
+author: "Gideon Miles"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:  
+    keep_md: true
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_height: 6
+    fig_width: 12
+    fig_align: 'center'
+---
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r load_libraries, include=FALSE}
+# Use this R-Chunk to load all your libraries!
+#install.packages("tidyverse") # run this line once in console to get package
+library(tidyverse)
+library(downloader)
+```
+
+```{r load_data}
+# Use this R-Chunk to import all your datasets!
+
+
+bob<-tempfile()
+
+  download("https://byuistats.github.io/M335/data/heights/Height.xlsx", bob, mode="wb")
+
+d1<-readxl::read_xlsx(bob, skip=2)
+
+#colnames(d1) <- d1[2, ]       #assign 1st row to column name
+
+
+#could i just rotate one colum to be a vector?
+
+d3<-pivot_longer(d1, cols = "1800":"2011", names_to="Year", values_to="Average_Height")
+d3<-na.omit(d3)
+
+```
+
+## Background
+
+_Place Task Background Here_
+
+## Data Wrangling
+
+```{r tidy_data}
+# Use this R-Chunk to clean & wrangle your data!
+
+```
+
+## Data Visualization
+
+```{r plot_data}
+# Use this R-Chunk to plot & visualize your data!
+  library(ggbeeswarm)
+
+ggplot(data=d3, mapping=aes(x=Year, y=Average_Height, color="red"))
+
+  ggplot(d3, aes(x=Year, y=Average_Height)) + stat_summary(fun="mean", geom="bar")+
+     geom_quasirandom(aes(color=Year, alpha=0))+
+  ylab("Height on Average")+
+  ggtitle("Are We Getting Taller?")+
+    stat_smooth(method="lm", se=FALSE)
+  
+  
+  d3<-d3 %>% rename(Location='Continent, Region, Country')
+
+  
+  d4<-filter(d3, Location=="Germany")
+ 
+  ##oor could i just scale it by decade?
+  
+
+  
+#+geom_bar(stat="count", inherit.aes=TRUE )
+
+
+  ggplot(data=d4, mapping=aes(x=Year, y=Average_Height, color="red"))
+
+  ggplot(d4, aes(x=as.numeric(Year), y=Average_Height)) + geom_line(color="blue")+
+    ggtitle("Height Increase In Germany", sub="By Decade")+
+    xlab("Year")+
+    ylab("Height")
+
+  
+  
+```
+
+Okay So I Dont Need The First Point But I liked it so I included it.  The Second Vizualization is the one for the class much more boring.
+
+
+## Part 2
+
+```{r}
+https://byuistats.github.io/M335/data/heights/germanconscr.dta
+## German
+library(readxl)
+library(foreign)
+library(haven)
+
+GermCon<- read.dta("germanconscr.dta")
+
+
+
+
+GermPris<-read.dta("germanprison.dta")
+
+##Bavarian
+
+bob<-tempfile()
+Bavar <- download("https://byuistats.github.io/M335/data/heights/germanprison.dta?raw=true", destfile= bob, mode="wb")
+
+b19<-read.dta(bob)
+b19<-b19 %>% rename(Height_IN=height)
+b19<-b19 %>% rename(Birth_Year = bdec)
+b19<-b19 %>% mutate(Study="b19")
+b19<-b19 %>% select(Study, Height_IN, Birth_Year)
+
+
+## West Germany  ## get this imported.
+bob<-tempfile()
+  bob_dir<-tempdir()
+
+  bob1<-tempfile()
+  
+#download.file("https://byuistats.github.io/M335/data/heights/Heights_south-east.zip", destfile=bob1, mode= "wb")
+
+#unzip(bob1,exdir=bob_dir)
+#WestGem<-read.dbf(paste(bob_dir, "WestGermany.dbf", sep="\\"))
+
+
+temp <- tempfile()
+download("https://byuistats.github.io/M335/data/heights/Heights_south-east.zip?raw=true", temp, mode = "wb")
+
+unzip(temp) 
+dbf <- read.dbf("B6090.DBF", as.is = F)
+
+dbf<-dbf %>% rename("Year"=SJ)
+g18<-dbf %>% mutate(as.numeric(Height_IN=CMETER/2.54))
+g18<-g18 %>% mutate(Study="g18")
+g18<-g18 %>% select(Study, Height_IN, Year)
+
+#cmeter is centemeter
+#convert that to inches
+#mutate those variables
+#select only inches and Birth Year, and study name and save them into a new variable called ___
+
+
+
+
+## Bureau of labor stats
+bob<-tempfile()
+download.file("https://github.com/hadley/r4ds/raw/master/data/heights.csv",destfile=bob,mode= "wb")
+Bureau<-read.csv(bob)
+
+
+## Wisconsin
+Wisconsin<-download("http://www.ssc.wisc.edu/nsfh/wave3/NSFH3%20Apr%202005%20release/main05022005.sav", destfile=bob, mode= "wb")
+
+bob<-tempfile()
+download.file("http://www.ssc.wisc.edu/nsfh/wave3/NSFH3%20Apr%202005%20release/main05022005.sav?raw=true",destfile=bob,mode= "wb")
+Wisconsin<-read_sav(bob)
+
+w20<-Wisconsin %>% select(DOBY, DOBM, RT216F,RT216I) #f  #i
+w20<-w20 %>% rename(DOBY)
+w20<-w20 %>% mutate(Birth_Year= paste0("19", w20$DOBY))
+w20<-w20 %>% mutate(Height_IN=as.numeric((RT216F*12)+RT216I))
+w20<-w20 %>% filter(Height_IN>=0)
+w20<-mutate(w20, Study="w20")
+w20<-w20 %>% select(Birth_Year,Height_IN, Study)
+
+
+
+b19<-select(birth_year, height.in, height.cm, Bavar)
+
+
+
+g18<-GermCon %>% select(bdec, height, height)
+g18<-mutate(g18, Study="g18")
+g18<-mutate(g18, Height_CM= height*2.54)
+g18<-g18 %>% rename(Height_IN=height)
+g18<-g18 %>% rename(Birth_Year=bdec)
+g18<-g18 %>% select(Birth_Year,Height_IN, Study)
+
+g19<-GermPris %>% select(bdec, height, height)
+g19<-mutate(g19, Study="g19")
+g19<-mutate(g19, Height_CM= height*2.54)
+g19<-g19 %>% rename(Height_IN=height)
+g19<-g19 %>% rename(Birth_Year=bdec)
+g19<-g19 %>% select(Birth_Year,Height_IN, Study)
+
+
+us20<-Bureau %>% rename(Height_IN=height)
+us20<-us20 %>% mutate(Study="us20")
+us20<-us20 %>% mutate(Birth_Year=1950)
+us20<-us20 %>% select(Birth_Year,Height_IN, Study)
+
+
+
+
+
+alld <- rbind(b19, g18, g19, us20, w20)
+
+ggplot(alld)+
+  geom_point()+
+  facet(~Study)
+
+
+#Use the following code to combine your five individual dataset into one dataset
+#alld <- bind_rows(b19, g18, g19, us20, w20)
+#[ ] Make a small-multiples plot of the five studies containing individual heights to examine the question of height distribution across centuries
+
+
+
+
+#The plan
+#Filter Each Data set down to the bare bones I need, then create a new dataset by grouping them by the old data set
+#Will a combining know to well i can just add a coloum that just has the name, yeah that works.
+
+
+
+```
+
+
+
+```{r}
+
+```
+
+
+## Conclusions
+
+We Are Increasing in Height, Germans on average in the last 200 years have increased a net height of 10 inches in the last 200 years, that about ab inch a decade.  Which is interesting.

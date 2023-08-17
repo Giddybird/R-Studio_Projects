@@ -1,0 +1,79 @@
+---
+title: "CASE STUDY TITLE"
+author: "YOUR NAME"
+date: "September 30, 2020"
+output:
+  html_document:  
+    keep_md: true
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_height: 6
+    fig_width: 12
+    fig_align: 'center'
+---
+
+
+
+
+
+
+```r
+## The Task:
+## Make a Graph of the Opener, and Finale episdoes ratings within a season comparision?
+##Specifically, we want to know how the ratings change within a season and across seasons. In one graph you will focus on comparing the ratings for the premier and finale of each season. In another graph, we'll want to compare mean ratings across seasons while not loosing track of each episode's rating within a season.
+
+
+# Use this R-Chunk to import all your datasets!
+```
+
+## Background
+
+The Great British Back off, one of the cooking phenoma of our decade. Has seen tremendous growth, starting with a modest 6 episode series when it was met with success it expand to 8 and then 10 episode series.  For 10 seasons its been on the air seeing a steady and significant growth over that time.
+
+## Data Wrangling
+
+
+```r
+# In one graph you will focus on comparing the ratings for the premier and finale of each season. 
+
+r2<-ratings %>% group_by(series) %>% filter(episode == c(1, max(episode)))
+
+r2$ep_first <- if_else(r2$episode == 1, 'first', 'last')
+
+ggplot(r2, aes(x=as.factor(ep_first), y=viewers_7day))+
+geom_bar(stat = 'identity')+
+  facet_grid(~series)+
+  xlab("Episode")+
+  ylab("Number of Veiws")+
+  ggtitle("Great British Bake Off Viewing", subtitle = "By Series")
+```
+
+![](Miles_Task_5_files/figure-html/tidy_data-1.png)<!-- -->
+
+## Data Visualization
+
+
+```r
+# Use this R-Chunk to plot & visualize your data!
+
+r3 <- ratings %>% group_by(series) %>% 
+  mutate(avg_rat = mean(viewers_7day))
+
+ggplot(data=r3) +geom_col(aes(x=episode, y=viewers_7day)) + facet_grid(~series) +scale_x_continuous(name="Episode Number", limits=c(0, 10))  +geom_line(aes(x=episode, y=avg_rat), col="red")+
+  xlab("Episode")+
+  ylab("Veiwers At 7 Days")+
+  ggtitle("Great British Bake Off Viewing", subtitle = "By Season, Average Season Views Represented by Red Line")
+```
+
+![](Miles_Task_5_files/figure-html/plot_data-1.png)<!-- -->
+
+```r
+#label Graphs,
+#label PLots
+#add colors
+```
+
+## Conclusions
+
+Season 7 Was the Peak of the shows popularity.  

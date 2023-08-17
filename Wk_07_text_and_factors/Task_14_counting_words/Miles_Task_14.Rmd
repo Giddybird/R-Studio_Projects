@@ -1,0 +1,249 @@
+---
+title: "Taks 14"
+author: "Gideon Miles"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:  
+    keep_md: true
+    toc: true
+    toc_float: true
+    code_folding: hide
+    fig_height: 6
+    fig_width: 12
+    fig_align: 'center'
+---
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r load_libraries, include=FALSE}
+# Use this R-Chunk to load all your libraries!
+#install.packages("tidyverse") # run this line once in console to get package
+library(tidyverse)
+library(downloader)
+```
+
+```{r load_data}
+# Use this R-Chunk to import all your datasets!
+
+scrip<-read_csv("lds-scriptures.csv")
+
+#What is the average verse length (number of words) in the New Testament compared to the Book of Mormon?
+
+scrip1<-scrip %>% 
+  mutate(verse_length=str_count(scrip$scripture_text, pattern = " ")+1)
+       
+scrip2<-scrip1 %>% group_by(volume_title) %>% summarise(Length=mean(verse_length)) 
+
+
+#How often is the word Jesus in the New Testament compared to the Book of Mormon?
+
+scrip1<-scrip %>% 
+  mutate(Jesus=str_count(scrip$scripture_text, pattern = "Jesus"))
+
+scrip3<-scrip1 %>% group_by(volume_title) %>% summarise(Jesus=sum(Jesus)) 
+
+#How does the word count distribution by verse look for each book in the Book of Mormon?
+
+BOM<-scrip1 %>% filter(volume_title=="Book of Mormon")
+
+```
+
+
+```{r load_data}
+# Use this R-Chunk to import all your datasets!
+
+scrip<-read_csv("lds-scriptures.csv")
+
+#What is the average verse length (number of words) in the New Testament compared to the Book of Mormon?
+
+scrip1<-scrip %>% 
+  mutate(verse_length=str_count(scrip$scripture_text, pattern = " ")+1)
+       
+scrip2<-scrip1 %>% group_by(volume_title) %>% summarise(Length=mean(verse_length)) 
+
+
+#How often is the word Jesus in the New Testament compared to the Book of Mormon?
+
+scrip1<-scrip %>% 
+  mutate(Love=str_count(scrip$scripture_text, pattern = "love"))
+
+scrip3<-scrip1 %>% group_by(volume_title) %>% summarise(Love=sum(Love)) 
+
+#How does the word count distribution by verse look for each book in the Book of Mormon?
+
+DC<-scrip1 %>% filter(volume_title=="Doctrine and Covenants")
+
+```
+
+
+
+
+```{r load_data}
+# Use this R-Chunk to import all your datasets!
+
+scrip<-read_csv("lds-scriptures.csv")
+
+#What is the average verse length (number of words) in the New Testament compared to the Book of Mormon?
+
+scrip1<-scrip %>% 
+  mutate(verse_length=str_count(scrip$scripture_text, pattern = " ")+1)
+       
+scrip2<-scrip1 %>% group_by(volume_title) %>% summarise(Length=mean(verse_length)) 
+
+
+#How often is the word Jesus in the New Testament compared to the Book of Mormon?
+
+scrip1<-scrip %>% 
+  mutate(freedom=str_count(scrip$scripture_text, pattern = "liberty"))
+
+scrip3<-scrip1 %>% group_by(volume_title) %>% summarise(freedom=sum(Love)) 
+
+```
+
+
+
+## Data Visualization
+
+```{r plot_data}
+# Use this R-Chunk to plot & visualize your data!
+
+ggplot()+geom_col(scrip2, mapping=aes(x=scrip2$volume_title, y=scrip2$Length))+
+  labs(x="Volume",y="Average Verse Length", title="Average Verse Length")
+  
+scrip3<-scrip3 %>% filter(volume_title=="Book of Mormon" | volume_title=="New Testament")
+
+ggplot() + geom_col(scrip3, mapping=aes(x=volume_title, y=Jesus))+
+  labs(x="Volume",y="Uses of the Name Jesus", title="Total Uses of the Name Jesus")
+
+
+BOM %>% 
+  ggplot(aes(x=BOM$verse_length))+
+ geom_density(aes(fill=BOM$book_title)) +
+  facet_wrap(~book_title, nrow=4)+
+  labs(x="Verse Length", y="Percent of Verses Of Length", title="Count Of Verses of Various Lengths in the Book of Mormon", fill="Book Title")
+
+```
+
+
+```{r}
+shinyApp(
+  ui = fluidPage(
+    selectInput("variable", "Variable:",
+                c("Cylinders" = "cyl",
+                  "Transmission" = "am",
+                  "Gears" = "gear")),
+    tableOutput("data")
+  ),
+  server = function(input, output) {
+    output$data <- renderTable({
+      mtcars[, c("mpg", input$variable), drop = FALSE]
+    }, rownames = TRUE)
+  }
+)
+```
+
+
+
+
+
+
+
+```{r}
+
+wcount<- function(df, word_match){
+  
+  df %>%
+    mutate(jcount=str_count(scripture_text, word_match)) %>% 
+    group_by(volume_title) %>% 
+    summaries(jtotal=sum(jcount))
+}
+
+wcount(df=scrips, word_match="Jesus")
+
+```
+
+
+```{r}
+
+wcount<- function(df, word_match){
+  
+  df %>%
+    mutate(jcount=str_count(scripture_text, word_match)) %>% 
+    group_by({{grouper}}) %>% 
+    summaries(jtotal=sum(jcount))
+}
+
+wcount(df=scrips, word_match="Jesus", grouper=book_title)
+
+```
+
+
+
+## Conclusions
+
+Its worthy of Note that this test looks only for the uses of the Name Jesus to refere to the savior, the Book of Mormon references the Savior by many names and in many ways beyond just a single word.  Also in regards to the second.  
+
+
+```{r}
+
+
+
+scrip4<-scrip %>% filter(volume_title=="Book of Mormon") %>% 
+  mutate(Twain=str_count(scripture_text, pattern = "And it came to pass | and it came to pass"))
+
+scrip5<-scrip4 %>% group_by(volume_title) %>% summarise(Twain=sum(Twain)) 
+
+#How does the word count distribution by verse look for each book in the Book of Mormon?
+
+BOM3<-scrip5 %>% filter(volume_title=="Book of Mormon")
+
+
+ggplot() + geom_col(BOM3, mapping=aes(x=volume_title, y=Twain))+
+  labs(x="Volume",y="And It Came To Pass", title="How Many Times is the Phrase Used?")
+
+
+scrip4<-scrip4 %>% mutate(Word_Count=str_count(scripture_text, pattern=" ")+1)
+scrip4<-scrip4 %>% mutate(Twain=Twain*5)
+
+scrip5<-scrip4 %>% group_by(book_title) %>% summarise(Twain=sum(Twain), Word_Count=sum(Word_Count))
+
+scrip5<-scrip4 %>% group_by()
+
+scrip5<-scrip5 %>% rename(And_It_Came_To_Pass=Twain, Total_Word_Count=Word_Count)
+
+##okay tricky thing how do I get this column to intermix with to pivot longer?? I think so.
+?pivot_longer()
+scrip5<-scrip5 %>% mutate(Percantage_of_Book=`And It Came To Pass`/ `Total Word Count`)
+
+
+
+ scrip5 %>%
+  cols_merge(
+    columns = vars(And_It_Came_To_Pass, Total_Word_Count),
+    hide_columns = vars(close),
+    pattern = "{1}&mdash;{2}"
+
+
+
+specie <- c(rep("sorgho" , 3) , rep("poacee" , 3) , rep("banana" , 3) , rep("triticum" , 3) )
+condition <- rep(c("normal" , "stress" , "Nitrogen") , 4)
+value <- abs(rnorm(12 , 0 , 15))
+data <- data.frame(specie,condition,value)
+ 
+# Grouped
+ggplot(data, aes(fill=condition, y=value, x=specie)) + 
+    geom_bar(position="dodge", stat="identity")
+
+
+
+ggplot(scrip5, aes(fill=book_title, y=value, x=book_title)) + 
+    geom_bar(position="dodge", stat="identity")
+
+
+ggplot() + geom_col(scrip5, mapping=aes(x=volume_title, y=Percantage_of_Book))+
+  labs(x="Volume",y="And It Came To Pass", title="How Many Times is the Phrase Used?")
+
+```
+
